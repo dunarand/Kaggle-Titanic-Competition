@@ -17,11 +17,12 @@ Then, create a Python virtual environment.
 python3 -m venv ./.venv
 ```
 
-Activate the Python environment. On Windows, run the following command in your command line (cmd.exe or PowerShell)
+Activate the Python environment. On Windows, run the following command in PowerShell
 
 ```PowerShell
 .\.venv\Scripts\Activate.ps1
 ```
+*(If you encounter execution errors, try running `Set-ExecutionPolicy RemoteSigned -Scope Process` first.)*
 
 On Linux/macOS, run
 
@@ -41,7 +42,17 @@ Next up, obtain the datasets `train.csv` and `test.csv` through the [official co
 kaggle competitions download -c titanic
 ```
 
-Unzip the contents into the `./data/` directory within the project. Next, launch a local Jupyter server:
+**IMPORTANT:** Ensure you have your `kaggle.json` API token placed in the correct directory (`~/.kaggle/` on Linux/macOS or `C:\Users\<user>\.kaggle/` on Windows). You can generate this file from your [Kaggle Account Settings](https://www.kaggle.com/settings) under the API section.
+
+Unzip the contents into the `./data/` directory.
+
+```bash
+mkdir -p data/
+unzip titanic.zip -d data/
+rm titanic.zip
+```
+
+Next, launch a local Jupyter server:
 
 ```bash
 jupyter notebook
