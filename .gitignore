@@ -4,6 +4,8 @@ __pycache/
 
 notebooks/.ipynb_checkpoints/
 
+html/
+
 data/gender_submission.csv
 data/test.csv
 data/train.csv
