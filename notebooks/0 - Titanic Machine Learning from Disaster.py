@@ -48,6 +48,49 @@
 # ## Project Outline
 
 # %% [markdown]
+# ### Objective
+
+# %% [markdown]
+# We will develop a machine learning model to predict whether a passenger
+# survived or not based on features such as `Age`, `Sex`, or socio-economic
+# class. The dataset together with the variables just stated (and others) will
+# be studied at later stages using descriptive statistics, visualizations, and
+# statistical analyses.
+#
+# One important note here is the purpose. Why do we develop such a project?
+# The main reason in my case is that to implement what I've learnt and learn
+# more along the way, practice my skills, and to simulate a real life work
+# experience. Of course, the project is not completely useless in terms of
+# real-life applications. The model could be used to study population dynamics
+# under emergency conditions, as an example. However, there are many talented
+# and experienced researches who worked on the same data many times, so the
+# reader should take this project only as a reflection of my individual
+# capacities and workflow.
+
+# %% [markdown]
+# ### The Model and Model Evaluation
+#
+# We'll decide on the model and the performance metrics while we develop
+# further into the project. We'll have a better idea about the model choice
+# at the understanding and planning phase. Our initial decision on the
+# performance would be to optimize for F1-score. However, since our data
+# science workflow is an iterative process, everything regarding the project
+# plan is subject to change as insights we reveal could alter our perspective
+# and reveal that certain choices would be more beneficiary. At this stage,
+# we can only make logical decisions based on shallow and brief inspection
+# of the data, which we'll carry out in the upcoming notebook.
+#
+# As for evaluation, we'll use model validation, various performance metrics
+# (depends on the selected model), and visualizations, such as confusion
+# matrix. We'll asses the model's performance and decide on whether it is
+# satisfactory or not.
+#
+# The project's performance goal is at least 80% accuracy and F1-score.
+
+# %% [markdown]
+# ### Structure
+
+# %% [markdown]
 # We'll divide the project into separate notebooks for each chapter. These
 # chapters are as follows:
 #
@@ -56,3 +99,18 @@
 # 3. [Exploratory Data Analysis](3%20-%20Exploratory%20Data%20Analysis.ipynb)
 # 4. [Building a Model](4%20-%20Building%20a%20Model.ipynb)
 # 5. [Results](5%20-%20Results.ipynb)
+#
+# Stages of the data science workflow are divided into their own notebooks.
+# Also, since this process is iterative, we may include sections in those
+# notebooks that require the reader to jump between notebooks. The notebooks
+# aren't conducted only as a document for presenting the findings but also to
+# document my thought-process and workflow, how I obtained and used information
+# throughout the project, and so on.
+
+# %% [markdown]
+# ## Next Up
+
+# %% [markdown]
+# In the upcoming notebook, we start by understanding the problem. We briefly
+# explore the data to have an understanding, and make educated decisions on
+# the project's development.
