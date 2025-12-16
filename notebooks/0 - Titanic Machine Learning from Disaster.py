@@ -21,16 +21,16 @@
 # %% [markdown]
 # ## Introduction <a name="1"></a>
 #
-# Titanic is one of the most widely-known deadly incidents of history.
+# Titanic is one of the most widely known deadly incidents in history.
 #
-# > RMS Titanic was a British ocean linear that sank in the early hours of
-# 15 April 1912 as a result of striking an icebern on her maiden voyage from
+# > RMS Titanic was a British ocean liner that sank in the early hours of
+# 15 April 1912, as a result of striking an iceberg on her maiden voyage from
 # Southampton, England, to New York City, United States. Of the estimated 2,224
 # passengers and crew aboard, approximately 1,500 died (estimates vary), making
 # the incident one of the deadliest peacetime sinkings of a single ship.
 # > (Wikipedia contributors, 2025)
 #
-# The Kaggle competition page states the challange as follows:
+# The Kaggle competition page states the challenge as follows:
 #
 # > On April 15, 1912, during her maiden voyage, the widely considered
 # “unsinkable” RMS Titanic sank after colliding with an iceberg. Unfortunately,
@@ -41,8 +41,8 @@
 # groups of people were more likely to survive than others.
 # >
 # > In this challenge, we ask you to build a predictive model that answers the
-# question: “what sorts of people were more likely to survive?” using passenger
-# data (i.e. name, age, gender, socio-economic class, etc).
+# question: “What sorts of people were more likely to survive?” using passenger
+# data (i.e., name, age, gender, socio-economic class, etc).
 
 # %% [markdown]
 # ## Project Outline
@@ -53,17 +53,17 @@
 # %% [markdown]
 # We will develop a machine learning model to predict whether a passenger
 # survived or not based on features such as `Age`, `Sex`, or socio-economic
-# class. The dataset together with the variables just stated (and others) will
+# class. The dataset, together with the variables just stated (and others), will
 # be studied at later stages using descriptive statistics, visualizations, and
 # statistical analyses.
 #
 # One important note here is the purpose. Why do we develop such a project?
-# The main reason in my case is that to implement what I've learnt and learn
-# more along the way, practice my skills, and to simulate a real life work
+# The main reason in my case is to implement what I've learnt and learn
+# more along the way, practice my skills, and to simulate a real-life work
 # experience. Of course, the project is not completely useless in terms of
 # real-life applications. The model could be used to study population dynamics
 # under emergency conditions, as an example. However, there are many talented
-# and experienced researches who worked on the same data many times, so the
+# and experienced researchers who worked on the same data many times, so the
 # reader should take this project only as a reflection of my individual
 # capacities and workflow.
 
@@ -76,16 +76,18 @@
 # performance would be to optimize for F1-score. However, since our data
 # science workflow is an iterative process, everything regarding the project
 # plan is subject to change as insights we reveal could alter our perspective
-# and reveal that certain choices would be more beneficiary. At this stage,
+# and reveal that certain choices would be more beneficial. At this stage,
 # we can only make logical decisions based on shallow and brief inspection
 # of the data, which we'll carry out in the upcoming notebook.
 #
 # As for evaluation, we'll use model validation, various performance metrics
-# (depends on the selected model), and visualizations, such as confusion
-# matrix. We'll asses the model's performance and decide on whether it is
+# (depends on the selected model), and visualizations, such as a confusion
+# matrix. We'll assess the model's performance and decide on whether it is
 # satisfactory or not.
 #
-# The project's performance goal is at least 80% accuracy and F1-score.
+# The project's performance goal is at around 85% accuracy and F1-score. We'll
+# talk about these performance targets in the next notebook, the planning
+# phase.
 
 # %% [markdown]
 # ### Structure
@@ -112,5 +114,5 @@
 
 # %% [markdown]
 # In the upcoming notebook, we start by understanding the problem. We briefly
-# explore the data to have an understanding, and make educated decisions on
+# explore the data to have an understanding and make educated decisions on
 # the project's development.
