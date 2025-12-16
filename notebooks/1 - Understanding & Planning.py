@@ -239,6 +239,20 @@ print(f"F1 score: {f1_score(y_test, pred)}")
 # of 75.7%. Thus, we'll set our target as around 85% accuracy and F1-score for
 # this project, performing better than an all-female survivor model and a
 # baseline decision tree model.
+#
+# Let's also `pickle` this model for future reference.
+
+# %%
+import pickle
+
+with open("../models/base_dt.pkl", "wb") as f:
+    pickle.dump(dt, f)
+
+# test
+with open("../models/base_dt.pkl", "rb") as f:
+    base_dt = pickle.load(f)
+
+print(accuracy_score(y_test, base_dt.predict(X_test)))
 
 # %% [markdown]
 # ## Next Steps
