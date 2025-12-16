@@ -69,7 +69,8 @@
 
 # %% [markdown]
 # ### The Model and Model Evaluation
-#
+
+# %% [markdown]
 # We'll decide on the model and the performance metrics while we develop
 # further into the project. We'll have a better idea about the model choice
 # at the understanding and planning phase. Our initial decision on the
