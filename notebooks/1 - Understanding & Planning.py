@@ -105,7 +105,7 @@ import pandas as pd
 # Let's now import the data.
 
 # %%
-df = pd.read_csv("../data/train.csv", encoding="utf-8")
+df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 df.head(10)
 
 # %% [markdown]
@@ -204,7 +204,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (recall_score, precision_score, f1_score)
 
-df = pd.read_csv("../data/train.csv", encoding="utf-8")
+df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 
 df.drop(['Cabin', 'Embarked', 'Name', 'PassengerId', 'Ticket'],
         axis=1, inplace=True)
