@@ -39,6 +39,10 @@ You can clone the repository and work on your local machine.
 
 - Python version >= 3.11.9 (older versions not tested)
 - Python packages in `requirements.txt` (older versions not tested)
+- A [Kaggle](https://kaggle.com/) account
+- Kaggle API key for obtaining the datasets
+    - Note: Kaggle API key is optional. You can get the dataset manually by
+    going to the competition webpage.
 
 ## Installation Steps
 
@@ -100,11 +104,11 @@ on Windows). You can generate this file from your
 [Kaggle Account Settings](https://www.kaggle.com/settings) under the API
 section.
 
-Unzip the contents into the `./data/raw` directory.
+Unzip the contents into the `./data/raw/` directory.
 
 ```bash
 mkdir -p data/
-unzip titanic.zip -d data/raw
+unzip titanic.zip -d data/raw/
 rm titanic.zip
 ```
 
