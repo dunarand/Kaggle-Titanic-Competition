@@ -107,9 +107,17 @@ section.
 Unzip the contents into the `./data/raw/` directory.
 
 ```bash
-mkdir -p data/
 unzip titanic.zip -d data/raw/
 rm titanic.zip
+```
+
+If the subdirectories under `/data/` do not exist, then create run the below
+command first before unzipping.
+
+```bash
+mkdir -p data/
+mkdir -p data/raw
+mkdir -p data/modified
 ```
 
 Next, launch a local Jupyter server:
@@ -121,6 +129,16 @@ jupyter notebook
 You can now work with the notebooks on your local machine.
 
 ## Project Structure
+
+Kaggle-Titanic-Competition
+├── assets/          # Images and external resources
+├── data/
+│   ├── raw/         # Immutable source data (Kaggle)
+│   └── modified/    # Cleaned data for modeling
+├── models/          # Pickled model files (*.pkl)
+├── notebooks/       # Jupyter notebooks
+├── README.md
+└── requirements.txt
 
 Notebooks are located in the `notebooks/` subdirectory.
 
