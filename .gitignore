@@ -6,6 +6,8 @@ notebooks/.ipynb_checkpoints/
 
 html/
 
-data/gender_submission.csv
-data/test.csv
-data/train.csv
+data/raw/gender_submission.csv
+data/raw/test.csv
+data/raw/train.csv
+
+TODO.txt
