@@ -111,8 +111,8 @@ unzip titanic.zip -d data/raw/
 rm titanic.zip
 ```
 
-If the subdirectories under `/data/` do not exist, then create run the below
-command first before unzipping.
+If the subdirectories under `/data/` do not exist, then run the below command
+first to create the directories before unzipping.
 
 ```bash
 mkdir -p data/
