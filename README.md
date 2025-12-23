@@ -130,6 +130,7 @@ You can now work with the notebooks on your local machine.
 
 ## Project Structure
 
+```text
 Kaggle-Titanic-Competition
 ├── assets/          # Images and external resources
 ├── data/
@@ -139,6 +140,7 @@ Kaggle-Titanic-Competition
 ├── notebooks/       # Jupyter notebooks
 ├── README.md
 └── requirements.txt
+```
 
 Notebooks are located in the `notebooks/` subdirectory.
 
