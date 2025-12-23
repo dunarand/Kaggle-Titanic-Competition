@@ -161,6 +161,8 @@ df.describe()
 # - Majority had no children
 #
 # Let's also take a look at the `Sex` variable.
+#
+# <center><div><img src="../assets/survival_by_sex.png" width="500"/></div></center>
 
 # %%
 df['Sex'].value_counts()
