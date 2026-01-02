@@ -1,13 +1,10 @@
 .venv/
 __pycache/
 .ipynb_checkpoints/
-
 notebooks/.ipynb_checkpoints/
-
 html/
 
-data/raw/gender_submission.csv
-data/raw/test.csv
-data/raw/train.csv
+data/raw/*.csv
+data/modified/*.csv
 
 TODO.txt
