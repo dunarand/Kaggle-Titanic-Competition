@@ -90,9 +90,9 @@ df["fare"].describe()
 # makes sense, but besides these, there isn't much more we can do for the time
 # being.
 #
-# Titanic accommodated luxurious cabins with utmost comfort, especially for the
-# first-class passengers. Below is a cutaway diagram depicting these
-# facilities.
+# Let's investigate the cabin column. Titanic accommodated luxurious cabins
+# with utmost comfort, especially for the first-class passengers. Below is a
+# cutaway diagram depicting these facilities.
 #
 # <center><div><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Olympic_%26_Titanic_cutaway_diagram.png/960px-Olympic_%26_Titanic_cutaway_diagram.png" alt="Titanic cutaway diagram" width="400"/></div></center>
 #
@@ -178,10 +178,7 @@ def extract_deck(cabin: str) -> str | list:
         return lst[0][0]
     if all([lst[0][0] == x[0] for x in lst]):
         return lst[0][0]
-    if lst[0][0] == "F" and lst[1][0] in [
-        "G",
-        "E",
-    ]:
+    if lst[0][0] == "F" and lst[1][0] in ["G", "E"]:
         return f"F-{lst[1][0]}"
     return lst
 
@@ -220,7 +217,7 @@ def extract_deck_sectionless(cabin: str) -> str | list:
     if all([lst[0][0] == x[0] for x in lst]):
         return lst[0][0]
     if lst[0][0] == "F" and lst[1][0] in ["G", "E"]:
-        return f"F"  # Only this line is modified
+        return f"F"  # same func as extract_deck func except for this line
     return lst
 
 
@@ -249,13 +246,14 @@ mismatched[["passengerid", "pclass", "deck", "cabin"]]
 # There are no mismatches between passenger classes and their decks. Thus, the
 # `cabin` column contains no invalid entries.
 #
-# Lastly, we can validate the `sex` column using passenger names. Firstly, we
-# can extract passenger titles from the `name` column. To do that, we need to
-# extract what titles are present in the dataset. What makes it easy in our
-# case is that titles end with a dot at the end of the word, so we can filter
-# by using that. Also, the names are consistent in formatting. Every name
-# string starts with the surname, followed by the title with a dot at the end,
-# and then the first and middle names follow. For example, Ward, Miss. Anna.
+# Finally, we can validate the `sex` column using passenger names. To start
+# with, we can extract passenger titles from the `name` column. To do that, we
+# need to extract what titles are present in the dataset. What makes it easy in
+# our case is that titles end with a dot at the end of the word, so we can
+# filter by using that. Also, the names are consistent in formatting. Every
+# name string starts with the surname, followed by the title with a dot at the
+# end, and then the first and middle names follow. For example, Ward, Miss.
+# Anna.
 
 # %%
 titles = [
@@ -382,12 +380,6 @@ print(f"Missing title values count: {df.title.isna().sum()}")
 df[["name", "title"]].head(10)
 
 # %% [markdown]
-# Let's also do a sanity check.
-
-# %%
-df["title"].isna().sum()
-
-# %% [markdown]
 # We understand that every name entry in the database contains a title and that
 # we had no errors extracting these titles.
 #
@@ -425,7 +417,7 @@ na_counts[na_counts > 0]
 # %% [markdown]
 # We'll start with the `embarked` column. Referring back to the data dictionary
 # we've provided in the notebook `Understanding & Planning`, `embarked` column
-# refers to the port of embarkation, meaning where they've boarded the Titanic.
+# refers to the port of embarkation, meaning where they boarded the Titanic.
 # The three possible values this column takes are `C` for Cherbourg, France,
 # `Q` for Queenstown, Ireland, and `S` for Southampton, England.
 #
@@ -463,7 +455,7 @@ df[df.pclass == 1].groupby(by="embarked")["embarked"].value_counts()
 
 # %%
 df["embarked"] = df["embarked"].fillna(value="S")
-df["embarked"].isna().sum()
+print(f"Missing embarked values count: {df.embarked.isna().sum()}")
 
 
 # %% [markdown]
@@ -475,7 +467,7 @@ df["embarked"].isna().sum()
 
 # %%
 na_age_titles = df.loc[df.age.isna(), "title"].unique()
-print(f"Missing age values per title: {na_age_titles}")
+print(f"Titles with missing age entries: {na_age_titles}")
 
 # %%
 df.loc[df.title.isin(na_age_titles), "title"].value_counts()
@@ -944,22 +936,22 @@ df.to_csv(
 #
 # 1. In `embarked` column, there were only 2 missing values. Both passengers
 # shared the same ticket number, which indicated that they probably both
-# embarked from the same place. We've checked which port was the most common
-# among first-class passengers to embark from. Then, we've assigned that value
-# to the missing entries.
-# 2. In `age` column, we've followed different strategies for handling missing
-# values. For example, we've handled the "Master." title case separately since
+# embarked from the same place. We checked which port was the most common among
+# first-class passengers to embark from. Then, we assigned that value to the
+# missing entries.
+# 2. In `age` column, we followed different strategies for handling missing
+# values. For example, we handled the "Master." title case separately since
 # that title is specific to a certain age group. We sliced the passengers into
-# groups using their titles, and for the rest, we've used a title and passenge
+# groups using their titles, and for the rest, we used a title and passenge
 # class based median calculation and assigned the value to the missing entries.
-# 3. Instead of imputing the `cabin` column, we've decided to impute the `deck`
-# column as it would introduce less noise. We've built a random forest
-# classifier and trained it on a feature-engineered column `fare_per_person`.
-# We hyperparameter-tuned this model and used it to impute the missing values.
-# We've also checked whether there were inconsistencies, for example, a
-# first-class passenger being assigned to deck G, but there were none.
+# 3. Instead of imputing the `cabin` column, we decided to impute the `deck`
+# column as it would introduce less noise. We built a random forest classifier
+# and trained it on a feature-engineered column `fare_per_person`. We
+# hyperparameter-tuned this model and used it to impute the missing values. We
+# also checked whether there were inconsistencies, for example, a first-class
+# passenger being assigned to deck G, but there were none.
 #
-# We've saved the resulting `pd.DataFrame` object as a new dataset under the
+# We saved the resulting `pd.DataFrame` object as a new dataset under the
 # directory `data/modified/cleaned.csv`, which we'll use in the upcoming
 # sections.
 #
