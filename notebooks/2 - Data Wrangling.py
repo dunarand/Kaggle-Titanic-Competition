@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.18.1
+#       jupytext_version: 1.19.1
 #   kernelspec:
 #     display_name: .venv
 #     language: python
@@ -36,10 +36,22 @@
 # ## Imports
 
 # %%
+import pickle
 import sqlite3
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    balanced_accuracy_score,
+    confusion_matrix,
+)
+from sklearn.model_selection import (
+    GridSearchCV,
+    StratifiedKFold,
+    train_test_split,
+)
 
 conn = sqlite3.connect(":memory:")
 
@@ -61,7 +73,7 @@ df.columns = df.columns.str.lower()
 # Let's also validate the data types.
 
 # %%
-df.dtypes
+print(df.dtypes)
 
 # %% [markdown]
 # Data types are correct. Then, we can check for invalid values. For example,
@@ -131,7 +143,7 @@ print(result)
 # Firstly, let's investigate the cabin T.
 
 # %%
-df.loc[df.cabin.str.contains("T") == True, "name"]
+df.loc[df.cabin.str.contains("T"), "name"]
 
 # %% [markdown]
 # There's only 1 passenger with this cabin number, Mr. Stephen Weart Blackwell.
@@ -217,7 +229,7 @@ def extract_deck_sectionless(cabin: str) -> str | list:
     if all([lst[0][0] == x[0] for x in lst]):
         return lst[0][0]
     if lst[0][0] == "F" and lst[1][0] in ["G", "E"]:
-        return f"F"  # same func as extract_deck func except for this line
+        return "F"  # same func as extract_deck func except for this line
     return lst
 
 
@@ -581,7 +593,6 @@ print(f"Missing age values count: {df.age.isna().sum()}")
 
 # %%
 def fill_same_ticket_decks():
-
     na_count_before = df.deck.isna().sum()
 
     ticket_deck_mode = (
@@ -621,9 +632,7 @@ ticket_counts = df["ticket"].map(df["ticket"].value_counts())
 family_size = df["sibsp"] + df["parch"] + 1
 
 group_size = np.where(
-    ticket_counts > 1,
-    np.maximum(ticket_counts, family_size),
-    family_size
+    ticket_counts > 1, np.maximum(ticket_counts, family_size), family_size
 )
 
 df["fare_per_person"] = df["fare"] / group_size
@@ -663,16 +672,6 @@ df[["fare", "fare_per_person"]].head(10)
 
 
 # %%
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import balanced_accuracy_score
-from sklearn.model_selection import (
-    GridSearchCV,
-    StratifiedKFold,
-    train_test_split
-)
-
-# %%
 seed = 6
 
 rf_data = df.drop("cabin", axis=1).dropna(axis=0)
@@ -682,11 +681,7 @@ X = rf_data[["fare_per_person", "pclass"]]
 y = rf_data["deck"]
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.20,
-    stratify=y,
-    random_state = seed
+    X, y, test_size=0.20, stratify=y, random_state=seed
 )
 
 print(X_train.shape, y_test.shape)
@@ -734,7 +729,6 @@ print(clf.best_params_)
 # Let's also investigate the confusion matrix.
 
 # %%
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
 
@@ -783,7 +777,6 @@ model.fit(X, y)
 # Let's also `pickle` this model for future use.
 
 # %%
-import pickle
 
 with open("../models/deck_imputer.pkl", "wb") as file:
     pickle.dump(model, file)
@@ -795,11 +788,10 @@ with open("../models/deck_imputer.pkl", "wb") as file:
 # corresponding to the duplicated ticket, then set the decks for the rest of
 # the passengers with the same ticket number as the first passenger.
 
+
 # %%
 def impute_decks(
-    data: pd.DataFrame,
-    passenger_idx: pd.Series,
-    threshold: float = 0.6
+    data: pd.DataFrame, passenger_idx: pd.Series, threshold: float = 0.6
 ) -> None:
     """
     Imputes the missing deck information of the specified passengers.
@@ -831,9 +823,7 @@ def impute_decks(
     na_count_before = data.deck.isna().sum()
 
     df.loc[passenger_idx, "deck"] = np.where(
-        max_proba >= threshold,
-        pred_labels,
-        np.nan
+        max_proba >= threshold, pred_labels, np.nan
     )
 
     na_count_after = data.deck.isna().sum()
@@ -863,9 +853,7 @@ df.deck.isna().sum()
 
 # %%
 impute_decks(
-    data=df,
-    passenger_idx=df.ticket.duplicated(keep="first"),
-    threshold=0.0
+    data=df, passenger_idx=df.ticket.duplicated(keep="first"), threshold=0.0
 )
 
 invalid = (
@@ -907,14 +895,11 @@ mismatched[["passengerid", "pclass", "deck", "cabin"]]
 
 # %% [markdown]
 # We've successfully imputed the `deck` column without any inconsistencies!
-# We'll save the modified data for future use in our EDA and model building. 
+# We'll save the modified data for future use in our EDA and model building.
 
 # %%
 df.to_csv(
-    "../data/modified/cleaned.csv",
-    encoding="utf-8",
-    header=True,
-    index=False
+    "../data/modified/cleaned.csv", encoding="utf-8", header=True, index=False
 )
 
 # %% [markdown]
