@@ -474,6 +474,14 @@ print(f"Missing embarked values count: {df.embarked.isna().sum()}")
 # ### Age
 
 # %% [markdown]
+# Let's first save the missing age indices to a separate csv file so that we
+# can keep track of it during later stages.
+
+# %%
+na_ids = df.loc[df.age.isna(), "passengerid"]
+na_ids.to_csv("../data/raw/na_ids.csv")
+
+# %% [markdown]
 # The dataset has 177 missing age values. Let's first investigate missing
 # values in the `age` column per title.
 
