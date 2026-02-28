@@ -1,8 +1,9 @@
-.venv
-__pycache
+.idea
 .ipynb_checkpoints
+__pycache__
+.venv
 
-*.html
 *.csv
+*.html
 
 TODO.txt
