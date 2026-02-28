@@ -73,7 +73,7 @@
 # `Ticket` | `object` | Ticket number |
 # `Fare` | `float64` | Passenger fare |
 # `Cabin` | `object` | Cabin number |
-# `Embarked` | `object` | Port of Embarkation | C = Cherbourg, </br>Q = Queenstown, </br>S = Southampton  # noqa: E501
+# `Embarked` | `object` | Port of Embarkation | C = Cherbourg, </br>Q = Queenstown, </br>S = Southampton
 #
 # **Notes:**
 #
@@ -173,7 +173,7 @@ df.describe()
 #
 # Let's also take a look at the `Sex` variable.
 #
-# <center><div><img src="../assets/survival_by_sex.png" width="500"/></div></center>  # noqa: E501
+# <center><div><img src="../assets/survival_by_sex.png" width="500"/></div></center>
 
 # %%
 df["Sex"].value_counts()
