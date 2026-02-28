@@ -9,9 +9,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: .venv
+#     display_name: kaggle-titanic
 #     language: python
-#     name: .venv
+#     name: kaggle-titanic
 # ---
 
 # %% [markdown]
@@ -785,7 +785,6 @@ model.fit(X, y)
 # Let's also `pickle` this model for future use.
 
 # %%
-
 with open("../models/deck_imputer.pkl", "wb") as file:
     pickle.dump(model, file)
 
@@ -819,7 +818,9 @@ def impute_decks(
     None
         Imputes the values directly into the given pd.DataFrame object
     """
-    X_missing = data.loc[passenger_idx, ["fare_per_person", "pclass"]]
+    subset = passenger_idx
+
+    X_missing = data.loc[subset, ["fare_per_person", "pclass"]]
 
     proba = model.predict_proba(X_missing)
     classes = model.classes_
@@ -830,15 +831,23 @@ def impute_decks(
 
     na_count_before = data.deck.isna().sum()
 
-    df.loc[passenger_idx, "deck"] = np.where(
-        max_proba >= threshold, pred_labels, np.nan
+    # Only fill where deck is NaN within the subset
+    subset_missing = data.loc[subset, "deck"].isna()
+
+    imputed_values = np.where(
+        max_proba >= threshold,
+        pred_labels,
+        np.nan
+    )
+
+    # Write back only to the NaN slots
+    data.loc[subset, "deck"] = data.loc[subset, "deck"].where(
+        ~subset_missing,
+        imputed_values
     )
 
     na_count_after = data.deck.isna().sum()
-
     print(f"Imputed {na_count_before - na_count_after} missing values.")
-
-    return None
 
 
 # %%
