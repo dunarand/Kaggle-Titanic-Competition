@@ -9,9 +9,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: kaggle-titanic
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: kaggle-titanic
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -34,8 +34,8 @@
 #
 # - Converted column names to lowercase
 # - Validated data types of columns
-# - Validated the data except for columns such as `fare` and `name`, where it is
-# not possible to do so
+# - Validated the data except for columns such as `fare` and `name`, where it
+# is not possible to do so
 # - Extracted a new column `title` from the passenger names, denoting the
 # honorifics such as Mr. and Mrs.
 # - Extracted a new column `deck` from the cabin numbers, such as deck "A" from
@@ -49,11 +49,11 @@
 # - Imputed 687 missing `cabin` values (77.1% of the whole data) using a random
 # forest model, trained on `fare_per_passenger` and `pclass` columns
 #
-# In this section, our goal is to answer some questions, discover insights, and
-# prepare ourselves for the model-building phase. Firstly, let's recall our goal.
+# In this section, our goal is to answer questions, uncover insights, and
+# prepare for the model-building phase. Firstly, let's recall our goal.
 #
-# **Goal**: We want to understand what factors, if there's any, contributes to
-# a passenger's survival.
+# **Goal**: We want to understand what factors, if any, contribute to a
+# passenger's survival.
 #
 # Questions we'll be answering throughout this notebook can be summarized as:
 #
@@ -72,10 +72,9 @@
 # %% [markdown]
 # We'll import the raw data as well. The purpose is to obtain the passenger IDs
 # for certain cases. For example, we want to get the IDs of passengers with
-# missing age values so that our deductions are minimally affected by
-# possible noise we introduced with data imputation. We will explore the
-# modified data as well, but it's a good idea to keep the original and even
-# compare the two.
+# missing age values so that our deductions are minimally affected by possible
+# noise we introduced with data imputation. We will explore the modified data
+# as well, but it's a good idea to keep the original and even compare the two.
 
 
 # %%
@@ -192,9 +191,9 @@ plt.show()
 # - 342 passengers survived
 # - 549 passengers did not survive
 #
-# Titanic's sinking resulted in approximately 1500 deaths among roughly 2200
-# passengers, which makes the survival rate about 31.8%. In our training
-# dataset, this rate is about 38.4%.
+# The sinking of the Titanic resulted in approximately 1500 deaths among
+# roughly 2200 passengers, which makes the survival rate about 31.8%. In our
+# training dataset, this rate is about 38.4%.
 
 
 # %% [markdown]
@@ -238,7 +237,7 @@ plt.show()
 # **Remarks**
 #
 # - 8 siblings is the maximum in our training data
-# - Mean sibling/spouse count is 0.52 with median 0
+# - Mean sibling/spouse count is 0.52 with a median of 0
 # - A skew value of 3.7 indicates a strong positive skew
 # - 68.2% of the passengers have no siblings/spouses aboard
 # - In summary, `sibsp` is dominated by passengers with no siblings or spouses,
@@ -271,7 +270,7 @@ plt.show()
 # **Remarks**
 #
 # - 6 children is the maximum in our training data
-# - Mean parents/children count is 0.38 with median 0
+# - Mean parents/children count is 0.38 with a median of 0
 # - A skew value of 2.7 indicates a strong positive skew
 # - 76.1% of the passengers have no parents/children aboard
 # - In summary, `parch` is dominated by passengers with no parents/children,
@@ -319,7 +318,7 @@ plt.show()
 # purposes. If such a grouping is needed for statistical inference or model
 # building, we'll make the distinctions in a more concrete way. For our
 # purposes, these should serve as a decent guideline. Additionally, the fact
-# that we're set to develop a tree based model, making such virtual
+# that we're set to develop a tree-based model means that making such virtual
 # distinctions could affect model performance in a negative way.
 #
 # Recall that we've imputed missing values in this column. We'll first analyze
@@ -335,10 +334,11 @@ describe_numeric(raw_age, "age")
 # %% [markdown]
 # **Remarks**
 #
-#  - Youngest passenger is 0.42 years old while the oldest passenger is 80.
-#      - Recall from the data dictionary that if a passenger's `age < 1`,
-#      then the age is expressed as a fraction. In this case, the said
-#      passenger is roughly 22 weeks old.
+#  - The youngest passenger is 0.42 years old, while the oldest passenger is
+#  80.
+#      - Recall from the data dictionary that if a passenger's `age < 1`, then
+#      the age is expressed as a fraction. In this case, the said passenger is
+#      roughly 22 weeks old.
 #  - Median age of 28 is very close to the mean age of 29.7.
 #  - A standard deviation of 14.5 indicates that the age feature is quite
 #  spread.
@@ -373,11 +373,11 @@ plt.show()
 # - Data is unimodal.
 # - There are several high-age outliers above age ~65.
 #     - These statistical outliers are most likely genuine data rather than
-#     error based on historical facts.
-# - There are no outliers on the lower-end, left tail is less extreme
+#     errors based on historical facts.
+# - There are no outliers on the lower-end, the left tail is less extreme
 # relative to the IQR.
-# - IQR is roughly between 20 and 40 years, which falls into the young
-# adult & adult age groups.
+# - IQR is roughly between 20 and 40 years, which falls into the young adult &
+# adult age groups.
 #
 # Let's also compare imputed age values with raw age data.
 
@@ -395,26 +395,26 @@ pd.concat(
 # %% [markdown]
 # Recall that we've imputed the age feature as follows:
 #
-# - We used `title` feature we've extracted from the `name` column for age
+# - We used the `title` feature we've extracted from the `name` column for age
 # imputation
 # - For missing age entries with titles Dr. and Master., we've used their group
 # median  ages
-# - For the title Miss., we've used `parch` column to differentiate young girls
-# from unmarried adult women and filled the missing values by taking the median
-# age
+# - For the title Miss., we've used the `parch` column to differentiate young
+# girls from unmarried adult women, and filled the missing values by taking the
+# median age
 # - For the rest of the missing data, we've assigned medians based on `pclass`
 # and `title`
 #
 # By looking at the table, we can understand the following:
 #
 # - Entry count increased from 714 to 891
-# - Mean age decreased about 2.36% while the median age decreased about 7.14%
+# - Mean age decreased about 2.36%, while the median age decreased about 7.14%
 # - Standard deviation also decreased
 # - Since we've used median ages for imputation, the minimum and maximum ages
 # remained the same
 # - Skewness increased by 15.7%
 #
-# One important note here is that none of these changes are extreme. For one
+# One important note here is that none of these changes is extreme. For one
 # thing, imputed values did not drastically change any descriptive statistic.
 # Given we've imputed about 20% of the whole data, the noise introduced seems
 # minimal from what we can tell. Let's also compare the distributions.
@@ -452,13 +452,13 @@ plt.show()
 
 # %% [markdown]
 # Distributions look similar except around the median. Since we've imputed the
-# majority of the missing values with the median, imputed age distribution has
-# steeper median value. On the other hand, rest of the distribution seems
-# similar and looks as expected from an age distribution in our case. It still
-# captures  the characteristic that the age distribution is positively skewed.
-# One other change we can observe is the number of statistical outliers, which
-# is as expected since the mean and the standard deviation are lower in
-# modified data.
+# majority of the missing values with the median, the imputed age distribution
+# has a steeper median value. On the other hand, the rest of the distribution
+# seems similar and looks as expected from an age distribution in our case. It
+# still captures  the characteristic that the age distribution is positively
+# skewed. One other change we can observe is the number of statistical
+# outliers, which is, as expected, since the mean and the standard deviation
+# are lower in the modified data.
 #
 # Now, let's also plot the age groups we defined earlier.
 
@@ -531,12 +531,12 @@ print(fare_desc)
 # **Remarks**
 #
 # - The minimum fare is GBP 0 while the highest fare is GBP 512.
-#    - Highest fare is historically accurate in this case.
+#    - The highest fare is historically accurate in this case.
 # - Median fare is GBP 14.5 while the mean is 32.2.
 # - The standard deviation is GBP 49.7, which is quite high, especially
-# compareed to the mean. Thus, the data is quite spread out.
-# - About half the passengers paid GBP 14.5 or less, 25% of which paid about
-# GBP 7.9 or less.
+# compared to the mean. Thus, the data is quite spread out.
+# - About half the passengers paid GBP 14.5 or less, 25% of whom paid about GBP
+# 7.9 or less.
 # - About 25% of the passengers paid more than GBP 31.
 
 # %%
@@ -564,17 +564,17 @@ plt.show()
 # - Data is extremely skewed. A skew value of 4.79 indicates an extreme
 # positive skew.
 # - There are a lot of statistical outliers above ~GBP 60.
-#    - In fact, there are 20 outliers detected by the z-test, or 116
-#    outliers detected using IQR.
+#    - In fact, there are 20 outliers detected by the z-test, or 116 outliers
+#    detected using IQR.
 #    - However, note that these statistical outliers are highly likely to be
-#    legitimate values. In reality, the Titanic had luxurious suites with
-#    very high markups. For example, the highest value of GBP 512 is
-#    historically accurate.
-#  - There are no outliers on the lower-end, left tail is less extreme
+#    legitimate values. In reality, the Titanic had luxurious suites with very
+#    high markups. For example, the highest value of GBP 512 is historically
+#    accurate.
+#  - There are no outliers on the lower-end, the left tail is less extreme
 #  relative to the IQR.
 #  - IQR is about GBP 23.1
 #
-# Below is the IQR and z-scores tests for outliers.
+# Below are the IQR and z-score tests for outliers.
 
 
 # %%
@@ -620,7 +620,7 @@ plt.show()
 # - `cabin`
 # - `embarked`: Port of embarkation
 #
-# We've also feature extracted
+# We've also extracted features
 #
 # - `deck`
 # - `title`
@@ -750,7 +750,7 @@ plt.show()
 #
 # - The majority of the passengers occupied E & F decks
 # - Deck T had only 1 passenger
-#   - Recall that we've validated the data already, there's no mistake here
+#   - Recall that we've validated the data already; there's no mistake here
 # - Data is negatively skewed
 # - Mode of deck is deck F
 
@@ -816,6 +816,10 @@ plt.show()
 # **Remarks**
 #
 # - More than half the passengers, 58% to be precise, were Mr.
-# - Occupation related titles, such as Dr. or Col., are rare
-# - Majority of the passengers had English honorifics but there were also some
-# honorifics in French, Italian, etc.
+# - Occupation-related titles, such as Dr. or Col., are rare
+# - The majority of the passengers had English honorifics, but there were also
+# some honorifics in French, Italian, etc.
+
+
+# %% [markdown]
+# ## Bivariate Data Analysis
