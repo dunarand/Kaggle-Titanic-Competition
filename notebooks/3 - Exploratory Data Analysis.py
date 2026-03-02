@@ -83,9 +83,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy import stats
+from statsmodels.stats.contingency_tables import Table
 
 # %%
 na_age_idx = pd.read_csv("../data/raw/na_ids.csv", index_col=0)
+na_age_idx = na_age_idx["passengerid"]
 
 na_age_idx.head(10)
 
