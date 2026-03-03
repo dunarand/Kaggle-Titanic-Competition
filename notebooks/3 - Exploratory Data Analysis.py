@@ -21,7 +21,7 @@
 # %% [markdown]
 # **Author:** M. Görkem Ulutürk
 #
-# **Date:** February, 2026
+# **Date:** March, 2026
 
 
 # %% [markdown]
@@ -107,7 +107,7 @@ df.info()
 
 
 # %% [markdown]
-# ## Univariate Data Analysis
+# ## Univariate Analysis
 
 
 # %% [markdown]
@@ -178,6 +178,8 @@ describe_categorical(df, "survived")
 ax = sns.countplot(
     data=df, x="survived", hue="survived", alpha=0.9, legend=False
 )
+
+ax.set_xticks([0, 1], ["No", "Yes"])
 
 ax.set_xlabel("Survived")
 ax.set_ylabel("Count")
@@ -670,7 +672,9 @@ ax = sns.countplot(
     data=df, x="sex", hue="sex", alpha=0.9, legend=False
 )
 
-ax.set_xlabel("")
+ax.set_xticks([0, 1], ["Male", "Female"])
+
+ax.set_xlabel("Sex")
 ax.set_ylabel("Count")
 ax.set_title("Titanic Sex Distribution")
 
@@ -700,7 +704,7 @@ ax = sns.countplot(
 
 plt.xticks([0, 1, 2], ["Southampton", "Cherbourg", "Queenstown"])
 
-ax.set_xlabel("")
+ax.set_xlabel("Port of Embarkation")
 ax.set_ylabel("Count")
 ax.set_title("Titanic Port of Embarkation Distribution")
 
@@ -824,4 +828,4 @@ plt.show()
 
 
 # %% [markdown]
-# ## Bivariate Data Analysis
+# ## Bivariate Analysis
