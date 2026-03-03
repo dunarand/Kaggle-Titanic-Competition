@@ -8,3 +8,4 @@ notebook>=7.5.0
 jupytext>=1.18.1
 jupyter_client
 ipykernel
+statsmodels
