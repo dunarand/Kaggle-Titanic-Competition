@@ -17,13 +17,16 @@
 # %% [markdown]
 # # 2 - Data Wrangling
 
+
 # %% [markdown]
 # **Author:** M. Görkem Ulutürk
 #
-# **Date:** January, 2026
+# **Date:** March, 2026
+
 
 # %% [markdown]
 # ## Introduction
+
 
 # %% [markdown]
 # In the previous section of the project, we conducted initial data wrangling.
@@ -32,8 +35,10 @@
 #
 # Let's start by importing the modules and the data.
 
+
 # %% [markdown]
 # ## Imports
+
 
 # %%
 import pickle
@@ -58,42 +63,59 @@ conn = sqlite3.connect(":memory:")
 df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 df.head()
 
+
 # %% [markdown]
 # ## Data Cleaning & Validation
+
 
 # %% [markdown]
 # Recall that we've already checked for duplicates in the understanding and
 # planning phase, and we've found no duplicates. Let's start by converting the
 # column names to lowercase.
 
+
 # %%
 df.columns = df.columns.str.lower()
+
 
 # %% [markdown]
 # Let's also validate the data types.
 
+
 # %%
 print(df.dtypes)
 
+
 # %% [markdown]
-# Data types are correct. Then, we can check for invalid values. For example,
-# we expect `survived` to be only 0 or 1.
+# As stated in the previous notebook, the `survived`, `pclass`, `sex`, and
+# `embarked` features are categorical variables. We'll convert these variables.
+
 
 # %%
-df["sex"].value_counts(dropna=False)
+cat_cols = ["survived", "pclass", "sex", "embarked"]
+df[cat_cols] = df[cat_cols].astype("category")
+
+print(df.dtypes)
+
 
 # %%
-df["embarked"].value_counts(dropna=False)
+df[["age", "fare"]].agg(["min", "max"])
+
 
 # %%
-df[["survived", "pclass", "age", "sibsp", "parch", "fare"]].agg(["min", "max"])
+for col in ["sex", "sibsp", "parch", "embarked"]:
+    print(df[col].value_counts(dropna=False, sort=False))
+    print()
+
 
 # %% [markdown]
 # We see no invalid values among these columns except for `fare`, where there
-# exist rows with a `fare` amount of 0. We shall validate the `fare` column.
+# exist rows with a `fare` amount of 0.
+
 
 # %%
 df["fare"].describe()
+
 
 # %% [markdown]
 # Now, there isn't much we can do to validate the `fare` column. We can verify
@@ -130,6 +152,7 @@ LIMIT 30
 result = pd.read_sql_query(query, conn)
 print(result)
 
+
 # %% [markdown]
 # - Cabin numbers start with a capital English letter
 # - Some passengers accommodated multiple cabins
@@ -142,8 +165,10 @@ print(result)
 #
 # Firstly, let's investigate the cabin T.
 
+
 # %%
 df.loc[df.cabin.str.contains("T"), "name"]
+
 
 # %% [markdown]
 # There's only 1 passenger with this cabin number, Mr. Stephen Weart Blackwell.
@@ -198,6 +223,7 @@ def extract_deck(cabin: str) -> str | list:
 # %%
 df.loc[df["cabin"].notna(), "cabin"].map(extract_deck).unique()
 
+
 # %% [markdown]
 # We see that only F G000 and F E000 types of cabin numbers exist, while there
 # are other such possibilities, such as F R000. Although some sections, such as
@@ -234,7 +260,9 @@ def extract_deck_sectionless(cabin: str) -> str | list:
 
 
 df["deck"] = df.loc[df["cabin"].notna(), "cabin"].map(extract_deck_sectionless)
+df["deck"] = df["deck"].astype("category")
 df.loc[df["cabin"].notna(), ["cabin", "deck"]].head(10)
+
 
 # %% [markdown]
 # Notice that our assumption that the group tickets' cabin numbers were all in
@@ -243,6 +271,7 @@ df.loc[df["cabin"].notna(), ["cabin", "deck"]].head(10)
 #
 # Lastly, let's check if the assumption that the first-class accommodations are
 # in decks A through E, and second and third classes in decks D through G.
+
 
 # %%
 invalid = (
@@ -253,6 +282,7 @@ invalid = (
 
 mismatched = df.dropna(subset=["cabin"]).query(invalid)
 mismatched[["passengerid", "pclass", "deck", "cabin"]]
+
 
 # %% [markdown]
 # There are no mismatches between passenger classes and their decks. Thus, the
@@ -267,6 +297,7 @@ mismatched[["passengerid", "pclass", "deck", "cabin"]]
 # end, and then the first and middle names follow. For example, Ward, Miss.
 # Anna.
 
+
 # %%
 titles = [
     df["name"]
@@ -279,6 +310,7 @@ titles = [
 ]
 
 print(titles)
+
 
 # %% [markdown]
 # Apart from one mistake in the titles ("L."), the rest of them are valid
@@ -294,6 +326,7 @@ WHERE NAME LIKE "% L. %"
 """
 result = pd.read_sql_query(query, conn)
 print(result)
+
 
 # %% [markdown]
 # These titles can be explained as follows:
@@ -342,6 +375,7 @@ print(result)
 #
 # Let's now create a column `title` from the names.
 
+
 # %%
 titles = [
     "Mr.",
@@ -387,9 +421,11 @@ def extract_title(name: str) -> str | None:
 
 # %%
 df["title"] = df["name"].apply(extract_title)
+df["title"] = df["title"].astype("category")
 
 print(f"Missing title values count: {df.title.isna().sum()}")
 df[["name", "title"]].head(10)
+
 
 # %% [markdown]
 # We understand that every name entry in the database contains a title and that
@@ -399,8 +435,10 @@ df[["name", "title"]].head(10)
 # some of the titles in our dataset are gender-neutral. Thus, we'll only check
 # for the ones that are gender-specific initially.
 
+
 # %%
 pd.crosstab(df["sex"], df["title"])
+
 
 # %% [markdown]
 # We see that the gender-specific titles all match a passenger's sex. On the
@@ -414,13 +452,16 @@ pd.crosstab(df["sex"], df["title"])
 # %% [markdown]
 # ## Missing Values
 
+
 # %% [markdown]
 # Now that we've validated our data, let's proceed with filling the missing
 # values in.
 
+
 # %%
 na_counts = df.isna().sum()
 na_counts[na_counts > 0]
+
 
 # %% [markdown]
 # ### Embarked column
@@ -447,16 +488,20 @@ na_counts[na_counts > 0]
 # Let's first see the passengers with missing boarding locations and then try
 # to make some connections to fill these missing values.
 
+
 # %%
 df[df["embarked"].isna()]
+
 
 # %% [markdown]
 # Both passengers have first-class tickets for cabin "B28", and they share the
 # same ticket number. Therefore, they've traveled together. In this case, it
 # makes sense that they also boarded the liner together.
 
+
 # %%
 df[df.pclass == 1].groupby(by="embarked")["embarked"].value_counts()
+
 
 # %% [markdown]
 # We see that the vast majority of the passengers with `pclass` as 1 embarked
@@ -464,6 +509,7 @@ df[df.pclass == 1].groupby(by="embarked")["embarked"].value_counts()
 #
 # Considering the vast majority of 1st class passengers boarded the Titanic
 # from Southampton, we'll assign the `Embarked` as `S` for these passengers.
+
 
 # %%
 df["embarked"] = df["embarked"].fillna(value="S")
@@ -473,24 +519,30 @@ print(f"Missing embarked values count: {df.embarked.isna().sum()}")
 # %% [markdown]
 # ### Age
 
+
 # %% [markdown]
 # Let's first save the missing age indices to a separate csv file so that we
 # can keep track of it during later stages.
+
 
 # %%
 na_ids = df.loc[df.age.isna(), "passengerid"]
 na_ids.to_csv("../data/raw/na_ids.csv")
 
+
 # %% [markdown]
 # The dataset has 177 missing age values. Let's first investigate missing
 # values in the `age` column per title.
+
 
 # %%
 na_age_titles = df.loc[df.age.isna(), "title"].unique()
 print(f"Titles with missing age entries: {na_age_titles}")
 
+
 # %%
 df.loc[df.title.isin(na_age_titles), "title"].value_counts()
+
 
 # %% [markdown]
 # We observe that the titles with missing age values contain nonempty entries
@@ -504,12 +556,14 @@ df.loc[df.title.isin(na_age_titles), "title"].value_counts()
 # For titles Dr. and Master., we can impute using title medians. Let's start
 # with that first.
 
+
 # %%
 dr_median = df.loc[df.title == "Dr.", "age"].median()
 df.loc[(df.title == "Dr.") & (df.age.isna()), "age"] = dr_median
 
 master_median = df.loc[df.title == "Master.", "age"].median()
 df.loc[(df.title == "Master.") & (df.age.isna()), "age"] = master_median
+
 
 # %% [markdown]
 # Next up, let's manually fill missing the young girl ages. We can filter by
@@ -519,10 +573,12 @@ df.loc[(df.title == "Master.") & (df.age.isna()), "age"] = master_median
 # assume that `parch` > 0 implies they have parents, which means that they are
 # girls or young women.
 
+
 # %%
 mask = (df.title == "Miss.") & (df.parch > 0)
 young_girl_median = df.loc[mask, "age"].median()
 df.loc[mask & (df.age.isna()), "age"] = young_girl_median
+
 
 # %% [markdown]
 # For the rest of the passengers, we can impute values with title and passenger
@@ -531,11 +587,13 @@ df.loc[mask & (df.age.isna()), "age"] = young_girl_median
 # middle-aged or older, and third-class passengers were usually workers and
 # immigrants, who were younger.
 
+
 # %%
 df["age"] = df["age"].fillna(
     df.groupby(by=["title", "pclass"])["age"].transform("median")
 )
 print(f"Missing age values count: {df.age.isna().sum()}")
+
 
 # %% [markdown]
 # <div class="alert alert-block alert-info">
@@ -562,6 +620,7 @@ print(f"Missing age values count: {df.age.isna().sum()}")
 
 # %% [markdown]
 # ### Cabin
+
 
 # %% [markdown]
 # As we've briefly mentioned before, filling individual cabin numbers is a
@@ -600,24 +659,36 @@ print(f"Missing age values count: {df.age.isna().sum()}")
 
 
 # %%
-def fill_same_ticket_decks():
+def fill_same_ticket_decks(df: pd.DataFrame):
     na_count_before = df.deck.isna().sum()
 
     ticket_deck_mode = (
         df.dropna(subset=["deck"])
-        .groupby(by="ticket")["deck"]
+        .groupby("ticket")["deck"]
         .agg(lambda x: x.value_counts().idxmax())
+        .reset_index()
+        .rename(columns={"deck": "deck_mode"})
     )
 
-    df["deck"] = df["deck"].fillna(df["ticket"].map(ticket_deck_mode))
+    df = df.merge(ticket_deck_mode, on="ticket", how="left")
 
+    if isinstance(df.deck, pd.CategoricalDtype):
+        new_cats = list(set(df.deck_mode.dropna().unique()) - set(
+            df.deck.categories
+        ))
+        df["deck"] = df["deck"].cat.add_categories(new_cats)
+
+    df["deck"] = df["deck"].fillna(df["deck_mode"])
+    df = df.drop(columns="deck_mode")
     na_count_after = df.deck.isna().sum()
+    print(f"Filled {na_count_before - na_count_after} missing 'deck' values.")
 
-    print(f"Filled {na_count_before - na_count_after} missing values.")
+    return df
 
 
 # %%
-fill_same_ticket_decks()
+df = fill_same_ticket_decks(df)
+
 
 # %% [markdown]
 # We've only filled 11 missing values. There are still 676 missing values. Now,
@@ -635,8 +706,9 @@ fill_same_ticket_decks()
 # categories)
 # - Should work well with the `fare` despite our difficulties making inferences
 
+
 # %%
-ticket_counts = df["ticket"].map(df["ticket"].value_counts())
+ticket_counts = df.groupby("ticket")["ticket"].transform("count")
 family_size = df["sibsp"] + df["parch"] + 1
 
 group_size = np.where(
@@ -646,6 +718,7 @@ group_size = np.where(
 df["fare_per_person"] = df["fare"] / group_size
 
 df[["fare", "fare_per_person"]].head(10)
+
 
 # %% [markdown]
 # What we essentially do above is as follows:
@@ -688,11 +761,21 @@ rf_data = rf_data[rf_data["deck"] != "T"]
 X = rf_data[["fare_per_person", "pclass"]]
 y = rf_data["deck"]
 
+
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.20, stratify=y, random_state=seed
 )
 
-print(X_train.shape, y_test.shape)
+if (
+    isinstance(X_train, pd.DataFrame)
+    and isinstance(X_test, pd.DataFrame)
+    and isinstance(y_train, pd.Series)
+    and isinstance(y_test, pd.Series)
+):
+    print(X_train.shape, y_test.shape)
+else:
+    raise Exception("train_test_split returned objects of unexpected type.")
+
 
 # %%
 rf = RandomForestClassifier(n_jobs=-1, random_state=seed)
@@ -718,6 +801,7 @@ clf = GridSearchCV(
 
 clf.fit(X_train, y_train)
 
+
 # %%
 y_pred = clf.predict(X_test)
 
@@ -736,13 +820,13 @@ print(clf.best_params_)
 #
 # Let's also investigate the confusion matrix.
 
+
 # %%
-
 cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
-
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
 
 disp.plot()
+
 
 # %% [markdown]
 # Here's a breakdown of the confusion matrix:
@@ -776,13 +860,16 @@ disp.plot()
 # assign a predicted deck to a passenger only when the model's confidence is
 # above our threshold. We can start with 60% and tune this parameter later.
 
+
 # %%
 model = RandomForestClassifier(random_state=42, n_jobs=-1, **clf.best_params_)
 
 model.fit(X, y)
 
+
 # %% [markdown]
 # Let's also `pickle` this model for future use.
+
 
 # %%
 with open("../models/deck_imputer.pkl", "wb") as file:
@@ -819,31 +906,31 @@ def impute_decks(
         Imputes the values directly into the given pd.DataFrame object
     """
     subset = passenger_idx
-
     X_missing = data.loc[subset, ["fare_per_person", "pclass"]]
-
     proba = model.predict_proba(X_missing)
     classes = model.classes_
+
+    if not isinstance(proba, np.ndarray):
+        raise Exception(
+            f"model.predict_proba returned {type(proba)} instead of np.ndarray"
+        )
 
     max_proba = proba.max(axis=1)
     pred_idx = proba.argmax(axis=1)
     pred_labels = classes[pred_idx]
 
     na_count_before = data.deck.isna().sum()
-
-    # Only fill where deck is NaN within the subset
     subset_missing = data.loc[subset, "deck"].isna()
 
-    imputed_values = np.where(
-        max_proba >= threshold,
-        pred_labels,
-        np.nan
+    # Use the index of the selected subset for the Series
+    subset_idx = data.loc[subset].index
+    imputed_series = pd.Series(
+        np.where(max_proba >= threshold, pred_labels, np.nan), index=subset_idx
     )
 
-    # Write back only to the NaN slots
+    # Assign only to NaN slots
     data.loc[subset, "deck"] = data.loc[subset, "deck"].where(
-        ~subset_missing,
-        imputed_values
+        ~subset_missing, imputed_series
     )
 
     na_count_after = data.deck.isna().sum()
@@ -853,20 +940,25 @@ def impute_decks(
 # %%
 impute_decks(data=df, passenger_idx=df.ticket.duplicated(keep="first"))
 
+
 # %% [markdown]
 # Now, we can set the decks of the passengers with the same tickets again.
 
+
 # %%
-fill_same_ticket_decks()
+df = fill_same_ticket_decks(df)
+
 
 # %%
 df.deck.isna().sum()
+
 
 # %% [markdown]
 # We still have 507 missing values to deal with. For the rest of the data, we
 # can lower the threshold to 0, perform a check on whether `pclass` matches the
 # assigned deck, and apply the same deck to the other ticket holders as we just
 # did.
+
 
 # %%
 impute_decks(
@@ -882,19 +974,23 @@ invalid = (
 mismatched = df.dropna(subset=["deck"]).query(invalid)
 mismatched[["passengerid", "pclass", "deck"]]
 
+
 # %% [markdown]
 # We don't have any inconsistencies regarding `pclass` and `deck` mismatches.
 # Therefore, we can proceed with imputing the rest of the values.
 
+
 # %%
-fill_same_ticket_decks()
+df = fill_same_ticket_decks(df)
 
 print(f"Missing deck values count: {df.deck.isna().sum()}")
+
 
 # %% [markdown]
 # Now, we have 458 passengers left who do not share their ticket with anyone
 # else. We'll impute these values and then check whether there's an
 # inconsistency.
+
 
 # %%
 impute_decks(data=df, passenger_idx=df.deck.isna(), threshold=0.0)
@@ -910,17 +1006,22 @@ invalid = (
 mismatched = df.dropna(subset=["cabin"]).query(invalid)
 mismatched[["passengerid", "pclass", "deck", "cabin"]]
 
+
 # %% [markdown]
 # We've successfully imputed the `deck` column without any inconsistencies!
 # We'll save the modified data for future use in our EDA and model building.
 
+
 # %%
-df.to_csv(
-    "../data/modified/cleaned.csv", encoding="utf-8", header=True, index=False
+df.to_parquet(
+    "../data/modified/cleaned.parquet",
+    index=False,
 )
+
 
 # %% [markdown]
 # ## Takeaways
+
 
 # %% [markdown]
 # In the data wrangling phase, we've completed the following procedures:
@@ -965,8 +1066,10 @@ df.to_csv(
 # towards obtaining a cleaner dataset, and we've been conscious of the
 # decisions we had to make.
 
+
 # %% [markdown]
 # ## References
+
 
 # %% [markdown]
 # - countess. (2026).
