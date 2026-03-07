@@ -17,13 +17,16 @@
 # %% [markdown]
 # # 1 - Understanding & Planning
 
+
 # %% [markdown]
 # **Author:** M. Görkem Ulutürk
 #
-# **Date:** December, 2025
+# **Date:** March, 2025
+
 
 # %% [markdown]
 # ## The Problem
+
 
 # %% [markdown]
 # Regardless of the workflow a data scientist chooses for a project, it should
@@ -42,8 +45,10 @@
 # played a role in their survival, and if so, which groups were more likely to
 # survive.
 
+
 # %% [markdown]
 # ## The Data
+
 
 # %% [markdown]
 # With this project, we've been handed three datasets:
@@ -52,8 +57,10 @@
 # 2. `test.csv`: Used for evaluating the model performance for submission
 # 3. `gender_submission.csv`: Example submission data
 
+
 # %% [markdown]
 # ### Data Dictionary <a name="data-dictionary"></a>
+
 
 # %% [markdown]
 # `train.csv` contains
@@ -89,14 +96,18 @@
 #     - Child = daughter, son, stepdaughter, stepson
 #     - Some children travelled only with a nanny, therefore parch=0 for them.
 
+
 # %% [markdown]
 # ## Inspecting the Data
+
 
 # %% [markdown]
 # ### Importing the Data
 
+
 # %% [markdown]
 # Let us start by importing the required packages.
+
 
 # %%
 import pickle
@@ -111,15 +122,14 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
-# %% [markdown]
-# Let's now import the data.
-
 # %%
 df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 df.head(10)
 
+
 # %% [markdown]
 # ### Initial Data Wrangling
+
 
 # %% [markdown]
 # We have the column `PassengerId`. This column is used in the `test.csv` data
@@ -127,23 +137,32 @@ df.head(10)
 #
 # Now, let's check for missing values and data types.
 
+
 # %%
 df.info()
+
 
 # %% [markdown]
 # Only columns to contain missing values are `Age`, `Cabin`, and `Embarked`. In
 # the data wrangling section of the project, we'll deal with these missing
 # values. For now, having an educated view of the data is beneficial for our
 # planning purposes.
+#
+# Here, the `Survived`, `Pclass`, `Sex`, and `Embarked` features are categorical
+# variables. We'll convert these variables in the data wrangling step.
+
 
 # %% [markdown]
 # Let's also check for duplicates.
 
+
 # %%
 df.duplicated(keep="first").sum()
 
+
 # %% [markdown]
 # We don't have any duplicates we need to deal with.
+
 
 # %% [markdown]
 # **Takeaways**
@@ -152,14 +171,18 @@ df.duplicated(keep="first").sum()
 # - We've found no duplicates in the data
 # - The data contains some missing values, especially in the `Cabin` column.
 
+
 # %% [markdown]
 # ### Initial EDA
+
 
 # %% [markdown]
 # To make reasonable plans, we'll briefly inspect the data.
 
+
 # %%
 df.describe()
+
 
 # %% [markdown]
 # We can deduce that
@@ -173,13 +196,15 @@ df.describe()
 #
 # Let's also take a look at the `Sex` variable.
 #
-# <center><div><img src="../assets/survival_by_sex.png" width="500"/></div></center>
+# <div><img src="../assets/survival_by_sex.png" width="500"/></div>
+
 
 # %%
 df["Sex"].value_counts()
 
 # %%
 df.groupby("Sex")["Survived"].agg("sum")
+
 
 # %% [markdown]
 # We observe that, although the majority of passengers were male, females were
@@ -188,30 +213,32 @@ df.groupby("Sex")["Survived"].agg("sum")
 # together with our intuition, is sufficient to suggest that `Sex` is likely
 # correlated with the target variable.
 
+
 # %% [markdown]
 # ### Performance Targets
 #
 # Lastly, we need to determine a performance benchmark. Let's create a baseline
 # prediction: since the majority of females survived (233 survivors out of 314
-#                                                       # total), a model that
-# predicts the passenger to survive if the passenger is female will be accurate
-# most of the time. Let's check.
+# total), a model that predicts the passenger to survive if the passenger is
+# female will be accurate most of the time. Let's check.
 #
 # Let's say the model predicts "survived" if the passenger is female and "did
 # not survive" if the passenger is male. In this case,
 
 
 # %%
-def predict(X: pd.DataFrame) -> pd.Series:  # noqa: N803
+def predict(X: pd.DataFrame) -> pd.Series:
     return X["Sex"] == "female"
 
 
 print(accuracy_score(df["Survived"], predict(df)))
 
+
 # %% [markdown]
 # A model that predicts all females as survived and all males as did not
 # survive has an accuracy of 79%. Let's also see what a baseline decision tree
 # classifier is able to achieve.
+
 
 # %%
 df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
@@ -242,6 +269,7 @@ print(f"Recall score: {recall_score(y_test, pred)}")
 print(f"Precision score: {precision_score(y_test, pred)}")
 print(f"F1 score: {f1_score(y_test, pred)}")
 
+
 # %% [markdown]
 # A baseline model without any feature engineering, by dropping the columns
 # `Cabin`, `Embarked`, `Name`, and `Ticket`, and by filling in missing `Age`
@@ -251,6 +279,7 @@ print(f"F1 score: {f1_score(y_test, pred)}")
 # baseline decision tree model.
 #
 # Let's also `pickle` this model for future reference.
+
 
 # %%
 with open("../models/base_dt.pkl", "wb") as f:
@@ -262,8 +291,10 @@ with open("../models/base_dt.pkl", "rb") as f:
 
 print(accuracy_score(y_test, base_dt.predict(X_test)))
 
+
 # %% [markdown]
 # ## Next Steps
+
 
 # %% [markdown]
 # Recall that the problem we're trying to solve is to be able to infer whether
