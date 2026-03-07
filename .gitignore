@@ -5,6 +5,7 @@ __pycache__
 .envrc
 
 *.csv
+*.parquet
 *.html
 
 TODO.txt
