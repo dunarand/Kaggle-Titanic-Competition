@@ -107,6 +107,18 @@ df.info()
 
 
 # %% [markdown]
+# Some columns did not preserve their data types, we'll cast them to their
+# expected types.
+
+
+# %%
+cols = ["survived", "pclass"]
+df[cols] = df[cols].astype("category")
+
+df.info()
+
+
+# %% [markdown]
 # ## Univariate Analysis
 
 
@@ -176,7 +188,7 @@ describe_categorical(df, "survived")
 
 # %%
 ax = sns.countplot(
-    data=df, x="survived", hue="survived", alpha=0.9, legend=False
+    data=df, x="survived", hue="survived", alpha=0.9, legend=False, dodge=False
 )
 
 ax.set_xticks([0, 1], ["No", "Yes"])
@@ -468,7 +480,7 @@ plt.show()
 
 
 # %%
-age_groups = pd.cut(
+df["age_group"] = pd.cut(
     df["age"],
     bins = [0, 1, 12, 18, 24, 44, 64, 100],
     labels = ["Infant", "Child", "Youth", "Young Adult", "Adult",
@@ -476,12 +488,12 @@ age_groups = pd.cut(
     right = False,
     include_lowest = True
 )
-if isinstance(age_groups, pd.Series):
-    counts = age_groups.value_counts()
-    percentages = age_groups.value_counts(normalize=True) * 100
+if isinstance(df["age_group"], pd.Series):
+    counts = df["age_group"].value_counts()
+    percentages = df["age_group"].value_counts(normalize=True) * 100
 
     age_groups = pd.DataFrame({
-        "age group": counts.index,
+        "age_group": counts.index,
         "count": counts.values,
         "percentage": percentages.values
     })
@@ -497,7 +509,7 @@ else:
 print(age_groups)
 
 ax = sns.barplot(
-    data=age_groups, x="age group", y="count", alpha=0.9, legend=False
+    data=age_groups, x="age_group", y="count", alpha=0.9, legend=False
 )
 
 plt.xticks(rotation = 45)
@@ -864,6 +876,93 @@ def desc_survived_vs_cat(data: pd.DataFrame, col: str) -> pd.DataFrame:
         {"Count": counts, "Percentage": percents}, axis=1
     )
 
+def chi_square_test(
+    data: pd.DataFrame,
+    col1: str,
+    col2: str,
+    alpha: float = 0.05,
+    heatmap: bool = True,
+    xlabel: str = "",
+    ylabel: str = "",
+    title: str = "",
+    name: str | None = None,
+) -> tuple | None:
+    """Conducts a chi-square test of independence and returns the contingency
+    table and the test result."""
+    contingency_table = pd.crosstab(data[col1], data[col2])
+
+    chi2: float
+    pval: float
+    dof: int
+    expected: np.ndarray
+
+    # Runs correctly in runtime, type safety is assured but linter will still
+    # complain. If anything unexpected happens, type checks after the assignment
+    # block will throw an error anyways
+    chi2, pval, dof, expected = stats.chi2_contingency(
+        contingency_table
+    ) # type: ignore
+
+    if not (
+        isinstance(chi2, (float, np.floating)) and
+        isinstance(pval, (float, np.floating)) and
+        isinstance(dof, (int, np.integer)) and
+        isinstance(expected, np.ndarray)
+    ):
+        raise TypeError(
+            "stats.chi2_contingency returned unexpected types: "
+            f"{type(chi2)}, {type(pval)}, {type(dof)}, {type(expected)}"
+        )
+
+    cells = expected.size
+    lt5 = (expected < 5).sum()
+    lt1 = (expected < 1).sum()
+
+    if lt1 > 0:
+        print("Chi-square assumptions violated: expected counts < 1 detected.")
+        print("Contingency Table:")
+        print(contingency_table)
+        return None
+
+    if lt5 / cells > 0.20:
+        print(
+            "Chi-square assumptions violated: "
+            f"{lt5}/{cells} expected counts < 5 (>20%)."
+        )
+        print("Contingency Table:")
+        print(contingency_table)
+        return None
+
+    if pval < alpha:
+        print(f"p-value < {alpha}: reject the null hypothesis")
+    else:
+        print(f"p-value >= {alpha}: fail to reject the null hypothesis")
+
+    if heatmap:
+        table = Table(contingency_table)
+        table.test_nominal_association()
+
+        std_resids = table.standardized_resids
+
+        ax = sns.heatmap(
+            std_resids,
+            annot=True,
+            cmap="flare",
+            center=0,
+            fmt=".2f",
+        )
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+
+        if name:
+            plt.savefig(f"../assets/{name}.png")
+
+        plt.show()
+
+    return chi2, pval, dof, expected, contingency_table
+
 
 # %% [markdown]
 # ### Passenger Class versus Survived
@@ -912,35 +1011,11 @@ plt.show()
 
 
 # %%
-obs_val = pd.crosstab(df["pclass"], df["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# Since the computed p-value is smaller than our determined $\alpha$ value, we
-# reject the null hypothesis. Thus, we have found statistical evidence that
-# `survived` is dependent on `pclass`.
-#
-# We should also interpret residuals to see how each passenger class is
-# associated with `survived`.
-
-
-# %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("Passenger Class")
-ax.set_title("pclass vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_pclass_resids.png")
-plt.show()
+chi_square_test(
+    data=df, col1="pclass", col2="survived", xlabel="Survived",
+    ylabel="Passenger Class", title="pclass vs survived Standardized Residuals",
+    name="surv_vs_pclass_resids"
+)
 
 
 # %% [markdown]
@@ -953,9 +1028,8 @@ plt.show()
 #
 # From the initial plot "Passenger Class versus Survived" and the chi-square
 # test of independence, we observe that `survived` is dependent on `pclass`:
-#     # first- and second-class passengers had higher survivorship rates than
-#     # expected. In comparison, third-class passengers had lower survivorship
-#     # rates.
+# first- and second-class passengers had higher survivorship rates than
+# expected. In comparison, third-class passengers had lower survivorship rates.
 
 
 # %% [markdown]
@@ -1004,11 +1078,7 @@ plt.show()
 
 
 # %%
-obs_val = pd.crosstab(df["sex"], df["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
+chi_square_test(data=df, col1="sex", col2="survived", heatmap=False)
 
 
 # %% [markdown]
@@ -1043,7 +1113,9 @@ desc_survived_vs_cont(df, "age")
 
 
 # %%
-ax = sns.boxplot(data=df, x="survived", y="age", hue="survived", legend=False)
+ax = sns.boxplot(
+    data=df, x="survived", y="age", hue="survived", legend=False, dodge=False
+)
 
 ax.set_xticks([0, 1], ["No", "Yes"])
 
@@ -1057,7 +1129,7 @@ plt.show()
 
 # %%
 ax = sns.violinplot(
-    data=df, x="survived", y="age", hue="survived", legend=False
+    data=df, x="survived", y="age", hue="survived", legend=False, dodge=False
 )
 
 ax.set_xticks([0, 1], ["No", "Yes"])
@@ -1183,22 +1255,11 @@ print(f"Stat: {stat}\np-value: {pval}")
 
 
 # %%
-df["age_group"] = pd.cut(
-    df["age"],
-    bins = [0, 1, 12, 18, 24, 44, 64, 100],
-    labels = ["Infant", "Child", "Youth", "Young Adult", "Adult",
-              "Middle Aged", "Aged"],
-    right = False,
-    include_lowest = True
+chi_square_test(
+    data=df, col1="age_group", col2="survived", heatmap=True, xlabel="Survived",
+    ylabel="Age", title="age_group vs survived Standardized Residuals",
+    name="surv_vs_age_group_resids"
 )
-
-desc_survived_vs_cat(df, "age_group")
-
-
-# %% [markdown]
-# The infant row violates the data assumptions of the chi-square test.
-# Therefore, we'll combine infants and children into a single group and proceed
-# that way.
 
 
 # %%
@@ -1211,39 +1272,11 @@ df["age_group"] = pd.cut(
     include_lowest = True
 )
 
-desc_survived_vs_cat(df, "age_group")
-
-
-# %%
-obs_val = pd.crosstab(df["age_group"], df["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# It appears that the computed p-value is significantly less than our
-# determined significance level of $\alpha = 0.05$. Therefore, we reject the
-# null hypothesis to conclude that survivorship is indeed dependent on the age
-# group. In other words, certain age groups had higher chances of survival than
-# others. Let's also see which groups survived more than expected using
-# standardized residuals.
-
-
-# %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("Age Group")
-ax.set_title("age_group vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_age_group_resids.png")
-plt.show()
+chi_square_test(
+    data=df, col1="age_group", col2="survived", heatmap=True, xlabel="Survived",
+    ylabel="Age", title="age_group vs survived Standardized Residuals",
+    name="surv_vs_age_group_resids"
+)
 
 
 # %% [markdown]
@@ -1319,35 +1352,22 @@ plt.show()
 
 
 # %%
-df_sibsp = df.loc[df.sibsp <= 4]
-
-obs_val = pd.crosstab(df_sibsp["sibsp"], df_sibsp["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# The resulting p-value is significantly smaller than our significance level of
-# $\alpha = 0.05$. Thus, we reject the null hypothesis to conclude that the
-# target variable `survived` is dependent on `sibsp`. Let's also look  at the
-# residuals to figure out this dependence.
+chi_square_test(
+    data=df, col1="sibsp", col2="survived", xlabel="Survived",
+    ylabel="Siblings/Spouse", title="sibsp vs survived Standardized Residuals",
+    name="surv_vs_sibsp_resids"
+)
 
 
 # %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
+df["sibsp_group"] = df["sibsp"].apply(lambda x: "3+" if x>=3 else str(x))
 
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
 
-ax.set_xlabel("Survived")
-ax.set_ylabel("SibSp")
-ax.set_title("sibsp vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_sibsp_resids.png")
-plt.show()
+chi_square_test(
+    data=df, col1="sibsp_group", col2="survived", xlabel="Survived",
+    ylabel="Siblings/Spouse", title="sibsp vs survived Standardized Residuals",
+    name="surv_vs_sibsp_resids"
+)
 
 
 # %% [markdown]
@@ -1357,13 +1377,16 @@ plt.show()
 # fewer survivors than expected
 # - The passengers with a sibling or a spouse had significantly higher survival
 # rates than expected
-# - Other groups were roughly as expected in terms of survival ratios
+# - The passengers with `sibsp == 2` had as expected survival rates
+# - The passengers with 3 or more siblings plus spouse had lower than expected
+# survival rates
 #
 # The `sibsp == 0` case could be explained by the fact that the Titanic had
 # numerous workers traveling to the United States. This idea is in line with
 # our previous results from the `pclass` section, where we observed a higher
 # number of non-survivors among third-class passengers, many of whom were the
-# said workers.
+# said workers. On the other hand, bigger families did not survive at expected
+# rates. Instead, they had less survivors than expected.
 #
 # We will dive deeper into this suspicion in the multivariate analysis section.
 
@@ -1414,35 +1437,20 @@ plt.show()
 
 
 # %%
-df_parch = df.loc[(df.parch != 4) & (df.parch != 6)]
-
-obs_val = pd.crosstab(df_parch["parch"], df_parch["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# Since the observed p-value is significantly less than the determined $\alpha$
-# value of 0.05, we reject the null hypothesis and conclude that `survived` is
-# dependent on the `parch` feature. Let's also analyze the residuals to
-# understand this relationship.
+chi_square_test(
+    data=df, col1="parch", col2="survived", xlabel="Survived",
+    ylabel="Parents/Children", title="parch vs survived Standardized Residuals",
+    name="surv_vs_parch_resids"
+)
 
 
 # %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("ParCh")
-ax.set_title("parch vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_parch_resids.png")
-plt.show()
+df["parch_group"] = df["parch"].apply(lambda x: "3+" if x>=3 else str(x))
+chi_square_test(
+    data=df, col1="parch_group", col2="survived", xlabel="Survived",
+    ylabel="Parents/Children", title="parch vs survived Standardized Residuals",
+    name="surv_vs_parch_resids"
+)
 
 
 # %% [markdown]
@@ -1454,7 +1462,8 @@ plt.show()
 # rates than expected
 # - The passengers with 2 parents and/or children had slightly higher survival
 # rates than expected
-# - The rest of the groups are just as expected
+# - The passengers with 3 or more parents and  children had expected survival
+# rates
 
 
 # %% [markdown]
@@ -1473,7 +1482,7 @@ desc_survived_vs_cont(df, "fare")
 # %%
 ax = sns.boxplot(
     data=df.loc[df.fare <= 100], x="survived", y="fare", hue="survived",
-    legend=False
+    legend=False, dodge=False
 )
 
 ax.set_xticks([0, 1], ["No", "Yes"])
@@ -1488,7 +1497,7 @@ plt.show()
 
 # %%
 ax = sns.violinplot(
-    data=df, x="survived", y="fare", hue="survived", legend=False
+    data=df, x="survived", y="fare", hue="survived", legend=False, dodge=False
 )
 
 ax.set_xticks([0, 1], ["No", "Yes"])
@@ -1624,32 +1633,11 @@ plt.show()
 
 
 # %%
-obs_val = pd.crosstab(df["embarked"], df["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# Since the resulting p-value is smaller than our significance level, we reject
-# the null hypothesis to conclude that `survived` is dependent on the
-# `embarked` feature. Let's also look at the individual relationships.
-
-
-# %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("Embarked")
-ax.set_title("embarked vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_embarked_resids.png")
-plt.show()
+chi_square_test(
+    data=df, col1="embarked", col2="survived", xlabel="Survived",
+    ylabel="Embarked", title="embarked vs survived Standardized Residuals",
+    name="surv_vs_embarked_resids"
+)
 
 
 # %% [markdown]
@@ -1724,43 +1712,21 @@ plt.show()
 
 # %%
 df_deck = df.loc[df.deck != "T"]
-
-obs_val = pd.crosstab(df_deck["deck"], df_deck["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# Since the resulting p-value is smaller than our significance level, we reject
-# the null hypothesis to conclude that `survived` is dependent on the `deck`
-# feature. Let's also look at the individual relationships.
-
-
-# %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("Deck")
-ax.set_title("deck vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_deck_resids.png")
-plt.show()
+chi_square_test(
+    data=df_deck, col1="deck", col2="survived", xlabel="Survived",
+    ylabel="Deck", title="deck vs survived Standardized Residuals",
+    name="surv_vs_deck_resids"
+)
 
 
 # %% [markdown]
 # **Remarks**
 #
+# - Deck A had expected survival rates
 # - For decks B and C, survival rates were significantly higher than expected
 # - Deck D had higher-than-expected survival rates
 # - Deck E and G had lower-than-expected survival rates
 # - Deck F had significantly fewer survivors than expected
-# - Deck A is as expected
 #
 # There's statistical evidence that `deck` is related to `survived`. The
 # reasons could vary. For starters, some decks could have easier access to the
@@ -1794,13 +1760,13 @@ def group_title(title):
     else:
         return "Other"
 
-df["title_grouped"] = df["title"].apply(group_title)
+df["title_group"] = df["title"].apply(group_title)
 
-desc_survived_vs_cat(df, "title_grouped")
+desc_survived_vs_cat(df, "title_group")
 
 
 # %%
-ax = sns.countplot(data=df, x="title_grouped", hue="survived", alpha=0.9)
+ax = sns.countplot(data=df, x="title_group", hue="survived", alpha=0.9)
 
 ax.set_xlabel("Honorific Title")
 ax.set_ylabel("Count")
@@ -1831,32 +1797,11 @@ plt.show()
 
 
 # %%
-obs_val = pd.crosstab(df["title_grouped"], df["survived"])
-contingency_table = obs_val
-chi2, pval, dof, expected = stats.chi2_contingency(contingency_table)
-
-print(f"chi2: {chi2}\np-value: {pval}\ndof: {dof}")
-
-
-# %% [markdown]
-# Since the resulting p-value is smaller than our significance level, we reject
-# the null hypothesis to conclude that `survived` is dependent on the `title`
-# feature. Let's also look at the individual relationships.
-
-
-# %%
-table = Table(obs_val)
-table.test_nominal_association()
-std_resids = table.standardized_resids
-
-ax = sns.heatmap(std_resids, annot=True, cmap="flare", center=0, fmt=".2f")
-
-ax.set_xlabel("Survived")
-ax.set_ylabel("Title")
-ax.set_title("title vs survived Standardized Residuals")
-
-plt.savefig("../assets/surv_vs_title_resids.png")
-plt.show()
+chi_square_test(
+    data=df, col1="title_group", col2="survived", xlabel="Survived",
+    ylabel="Honorific Title", title="title vs survived Standardized Residuals",
+    name="surv_vs_title_resids"
+)
 
 
 # %% [markdown]
