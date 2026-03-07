@@ -93,7 +93,7 @@ na_age_idx.head(10)
 
 
 # %%
-df = pd.read_csv("../data/modified/cleaned.csv")
+df = pd.read_parquet("../data/modified/cleaned.parquet")
 
 df.head(10)
 
@@ -669,7 +669,8 @@ describe_categorical(df, "sex")
 
 # %%
 ax = sns.countplot(
-    data=df, x="sex", hue="sex", alpha=0.9, legend=False
+    data=df, x="sex", hue="sex", alpha=0.9, legend=False, dodge=False,
+    order=["male", "female"]
 )
 
 ax.set_xticks([0, 1], ["Male", "Female"])
@@ -699,7 +700,7 @@ describe_categorical(df, "embarked")
 
 # %%
 ax = sns.countplot(
-    data=df, x="embarked", alpha=0.9, legend=False
+    data=df, x="embarked", alpha=0.9, legend=False, order = ["S", "C", "Q"]
 )
 
 plt.xticks([0, 1, 2], ["Southampton", "Cherbourg", "Queenstown"])
@@ -971,7 +972,9 @@ desc_survived_vs_cat(df, "sex")
 
 
 # %%
-ax = sns.countplot(data=df, x="sex", hue="survived", alpha=0.9)
+ax = sns.countplot(
+    data=df, x="sex", hue="survived", alpha=0.9, order=["male", "female"]
+)
 
 ax.set_xlabel("Sex")
 ax.set_ylabel("Count")
@@ -1586,7 +1589,9 @@ desc_survived_vs_cat(df, "embarked")
 
 
 # %%
-ax = sns.countplot(data=df, x="embarked", hue="survived", alpha=0.9)
+ax = sns.countplot(
+    data=df, x="embarked", hue="survived", alpha=0.9, order=["S", "C", "Q"]
+)
 
 ax.set_xticks([0, 1, 2], ["Southampton", "Cherbourg", "Queenstown"])
 
