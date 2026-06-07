@@ -8,6 +8,10 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
+#   kernelspec:
+#     display_name: kaggle-titanic
+#     language: python
+#     name: kaggle-titanic
 # ---
 
 # %% [markdown]
@@ -86,9 +90,10 @@
 # matrix. We'll assess the model's performance and decide on whether it is
 # satisfactory or not.
 #
-# The project's performance goal is at around 85% accuracy and F1-score. We'll
-# talk about these performance targets in the next notebook, the planning
-# phase.
+# The project's performance goal is around 85% accuracy and a high-enough
+# F1-score we'll determine as we progress. We'd prefer the F1-score to be higher
+# than our baseline models in the upcoming notebook. We'll talk about the
+# performance baseline.
 
 # %% [markdown]
 # ### Structure
