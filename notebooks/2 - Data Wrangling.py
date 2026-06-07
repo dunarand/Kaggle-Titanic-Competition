@@ -673,9 +673,9 @@ def fill_same_ticket_decks(df: pd.DataFrame):
     df = df.merge(ticket_deck_mode, on="ticket", how="left")
 
     if isinstance(df.deck, pd.CategoricalDtype):
-        new_cats = list(set(df.deck_mode.dropna().unique()) - set(
-            df.deck.categories
-        ))
+        new_cats = list(
+            set(df.deck_mode.dropna().unique()) - set(df.deck.categories)
+        )
         df["deck"] = df["deck"].cat.add_categories(new_cats)
 
     df["deck"] = df["deck"].fillna(df["deck_mode"])
