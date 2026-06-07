@@ -113,6 +113,8 @@
 import pickle
 
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -120,11 +122,22 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 
 # %%
 df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 df.head(10)
+
+
+# %% [markdown]
+# Let's take a copy of the dataframe before we modify it. It'll be useful when
+# we develop a baseline model on unmodified data.
+
+
+# %%
+df_baseline = df.copy(deep=True)
 
 
 # %% [markdown]
@@ -231,36 +244,52 @@ def predict(X: pd.DataFrame) -> pd.Series:
     return X["Sex"] == "female"
 
 
-print(accuracy_score(df["Survived"], predict(df)))
+print(f"Accuracy score: {accuracy_score(df['Survived'], predict(df))}")
+print(f"Recall score: {recall_score(df['Survived'], predict(df))}")
+print(f"Precision score: {precision_score(df['Survived'], predict(df))}")
+print(f"F1 score: {f1_score(df['Survived'], predict(df))}")
 
 
 # %% [markdown]
-# A model that predicts all females as survived and all males as did not
-# survive has an accuracy of 79%. Let's also see what a baseline decision tree
-# classifier is able to achieve.
+# A model that predicts all females as survived and all males as did not survive
+# has an accuracy of 78.7% and an F1-score of 71.0%. Let's also see what a
+# baseline decision tree classifier is able to achieve.
 
 
 # %%
-df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
-
-df.drop(
-    ["Cabin", "Embarked", "Name", "PassengerId", "Ticket"], axis=1, inplace=True
-)
-
-# Filling missing values; only `Age` column contains NaNs
-df.fillna(value=df["Age"].mean(), axis=0, inplace=True)
-df.reset_index(inplace=True, drop=True)
-
-df = pd.get_dummies(data=df)
-
-y = df["Survived"]
-X = df.drop("Survived", axis=1)
+y = df_baseline["Survived"]
+X = df_baseline[["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked"]]
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, random_state=40
+    X, y, test_size=0.20, random_state=40, stratify=y
 )
 
-dt = DecisionTreeClassifier(random_state=40)
+numeric_feats = ["Pclass", "Age", "SibSp", "Parch", "Fare"]
+categorical_feats = ["Sex", "Embarked"]
+
+numeric_transformer = Pipeline([("imputer", SimpleImputer(strategy="mean"))])
+
+categorical_transformer = Pipeline(
+    [
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("onehot", OneHotEncoder(handle_unknown="ignore", drop="if_binary")),
+    ]
+)
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", numeric_transformer, numeric_feats),
+        ("cat", categorical_transformer, categorical_feats),
+    ]
+)
+
+dt = Pipeline(
+    [
+        ("preprocessor", preprocessor),
+        ("clf", DecisionTreeClassifier(random_state=40)),
+    ]
+)
+
 dt.fit(X_train, y_train)
 pred = dt.predict(X_test)
 
@@ -272,10 +301,11 @@ print(f"F1 score: {f1_score(y_test, pred)}")
 
 # %% [markdown]
 # A baseline model without any feature engineering, by dropping the columns
-# `Cabin`, `Embarked`, `Name`, and `Ticket`, and by filling in missing `Age`
-# values with the mean, can achieve an accuracy score of 79.9%, and an F1-score
-# of 75.7%. Thus, we'll set our target as around 85% accuracy and F1-score for
-# this project, performing better than an all-female survivor model and a
+# `Cabin`, `Name`, and `Ticket`, and by filling in missing `Age` and `Embarked`
+# values with the mean and most frequent value, respectively, can achieve an
+# accuracy score of 81%, and an F1-score of 75%. Thus, we'll set our target as
+# around 85% for accuracy, while also targeting an F1-score higher than the
+# baseline model's, performing better than an all-female survivor model and a
 # baseline decision tree model.
 #
 # Let's also `pickle` this model for future reference.
@@ -332,5 +362,5 @@ print(accuracy_score(y_test, base_dt.predict(X_test)))
 # Lastly, the model choice will be clearer after data wrangling and EDA;
 # however, an educated guess would be that a tree-based classifier is probably
 # the best fit for the case. We'll uncover more in the upcoming sections. We've
-# set a performance target of around 85% in both accuracy and F1 scores for the
-# model.
+# set a performance target of around 85% for accuracy and an F1-score higher
+# than the baseline model's 74.5% for the model.
