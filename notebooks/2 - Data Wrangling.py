@@ -41,24 +41,25 @@
 
 
 # %%
-import pickle
-import sqlite3
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+import seaborn as sns
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     balanced_accuracy_score,
     confusion_matrix,
+    mean_absolute_error,
 )
 from sklearn.model_selection import (
     GridSearchCV,
     StratifiedKFold,
     train_test_split,
 )
-
-conn = sqlite3.connect(":memory:")
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 df = pd.read_csv("../data/raw/train.csv", encoding="utf-8")
 df.head()
@@ -89,6 +90,17 @@ print(df.dtypes)
 # %% [markdown]
 # As stated in the previous notebook, the `survived`, `pclass`, `sex`, and
 # `embarked` features are categorical variables. We'll convert these variables.
+#
+# One remark here is the conversion of `pclass` from an integer feature to a
+# categorical feature. Even though it is not necessary for a tree-based model,
+# this conversion is the correct approach where the implied "distances" between
+# categories are not the same as their numeric values. For example, it may not
+# be the case that the "distance" between first and second-class passengers is
+# equal to the "distance" between second and third-class passengers. Therefore,
+# for other model types such as linear models, it is a good practice to convert
+# these variables to categorical types or transform them to uncover underlying
+# ordering and differences properly. In our case, a tree-based model is able to
+# make these deductions by itself, but it is still a good practice nonetheless.
 
 
 # %%
@@ -141,16 +153,7 @@ df["fare"].describe()
 
 
 # %%
-df.to_sql("titanic", conn, if_exists="replace", index=False)
-
-query = """
-SELECT DISTINCT(cabin) FROM titanic
-WHERE cabin IS NOT NULL
-LIMIT 30
-"""
-
-result = pd.read_sql_query(query, conn)
-print(result)
+print(df.loc[df.cabin.notna(), "cabin"].unique()[0:25])
 
 
 # %% [markdown]
@@ -180,7 +183,7 @@ df.loc[df.cabin.str.contains("T"), "name"]
 #
 # Now, the entries like "F G73" are not mistakes either. The reason is that
 # this cabin number denotes the deck F, section G, cabin 73. We infer this
-# information from the [Titanic's
+# information from the [Titanic's deck
 # plans](https://www.encyclopedia-titanica.org/titanic-deckplans/f-deck.html)
 # themselves.
 #
@@ -233,6 +236,14 @@ df.loc[df["cabin"].notna(), "cabin"].map(extract_deck).unique()
 
 
 # %%
+SECTIONS_MAP = {
+    "D": ["A", "O"],
+    "E": ["B", "K", "M", "Q"],
+    "F": ["C", "E", "G", "H", "J", "R"],
+    "G": ["D", "F", "N", "S"],
+}
+
+
 def extract_deck_sectionless(cabin: str) -> str | list:
     """
     Extracts the deck information (A, B, C, etc.) from the cabin number.
@@ -249,14 +260,32 @@ def extract_deck_sectionless(cabin: str) -> str | list:
     str
         Cabin's deck
     """
-    lst = cabin.split(" ")
-    if len(lst) == 1:
-        return lst[0][0]
-    if all([lst[0][0] == x[0] for x in lst]):
-        return lst[0][0]
-    if lst[0][0] == "F" and lst[1][0] in ["G", "E"]:
-        return "F"  # same func as extract_deck func except for this line
-    return lst
+    str_list = cabin.split(" ")
+
+    # Case where there's only one cabin number or cabin is of type
+    # deck + cabin number
+    if len(str_list) == 1:
+        return str_list[0][0]
+
+    # Case where there are multiple cabin numbers within the same deck
+    if all([str_list[0][0] == x[0] for x in str_list]):
+        return str_list[0][0]
+
+    if len(str_list) > 1:
+        # Case where subsection is included in the cabin number, eg F E69
+        if (
+            len(str_list[0]) == 1
+            and str_list[1][0] in SECTIONS_MAP[str_list[0][0]]
+        ):
+            return str_list[0][0]
+        # Case where there are multiple cabins each from different decks
+        # We'll just assign the mode
+        if len(str_list[0]) != 1:
+            deck_arr = np.array([x[0] for x in str_list])
+            u, c = np.unique(deck_arr, return_counts=True)
+            return u[np.argmax(c)]
+
+    return cabin
 
 
 df["deck"] = df.loc[df["cabin"].notna(), "cabin"].map(extract_deck_sectionless)
@@ -264,10 +293,14 @@ df["deck"] = df["deck"].astype("category")
 df.loc[df["cabin"].notna(), ["cabin", "deck"]].head(10)
 
 
+# %%
+print(df.loc[df["cabin"].str.contains(" "), ["cabin", "deck"]].head(10))
+
+
 # %% [markdown]
-# Notice that our assumption that the group tickets' cabin numbers were all in
-# the same deck was true for the non-missing data. We'll keep this assumption
-# in mind when filling in the missing values for the cabin column.
+# Notice our assumption that the group tickets' cabin numbers were all in the
+# same deck was true for the non-missing data. We'll keep this assumption in
+# mind when filling in the missing values for the cabin column.
 #
 # Lastly, let's check if the assumption that the first-class accommodations are
 # in decks A through E, and second and third classes in decks D through G.
@@ -281,7 +314,7 @@ invalid = (
 )
 
 mismatched = df.dropna(subset=["cabin"]).query(invalid)
-mismatched[["passengerid", "pclass", "deck", "cabin"]]
+print(mismatched[["passengerid", "pclass", "deck", "cabin"]])
 
 
 # %% [markdown]
@@ -319,13 +352,11 @@ print(titles)
 
 
 # %%
-df.to_sql("titanic", conn, if_exists="replace", index=False)
-query = """
-SELECT NAME FROM TITANIC
-WHERE NAME LIKE "% L. %"
-"""
-result = pd.read_sql_query(query, conn)
-print(result)
+print(
+    df.loc[
+        df["name"].str.contains(".*L\\..*", regex=True), ["passengerid", "name"]
+    ]
+)
 
 
 # %% [markdown]
@@ -377,7 +408,7 @@ print(result)
 
 
 # %%
-titles = [
+TITLES = {
     "Mr.",
     "Mrs.",
     "Miss.",
@@ -395,7 +426,7 @@ titles = [
     "Capt.",
     "Countess.",
     "Jonkheer.",
-]
+}
 
 
 def extract_title(name: str) -> str | None:
@@ -413,9 +444,20 @@ def extract_title(name: str) -> str | None:
         Honorific title
     """
     str_list = name.split(" ")
-    for _str in str_list:
-        if _str in titles:
-            return _str
+    for word in str_list:
+        if word in TITLES:
+            return word
+
+    dotted = [word for word in str_list if "." in word]
+
+    # Every person has a title;
+    if len(dotted) == 1:
+        return dotted[0]
+
+    # Every shortened name is exactly 2 chars long
+    if len(dotted) > 1:
+        return next(word for word in dotted if len(word) > 2)
+
     return None
 
 
@@ -428,8 +470,13 @@ df[["name", "title"]].head(10)
 
 
 # %% [markdown]
-# We understand that every name entry in the database contains a title and that
-# we had no errors extracting these titles.
+# We made two assumptions when extracting titles from passenger names:
+#
+# 1. Every passenger has an honorific title
+# 2. Every shortened name is exactly two characters long, including the dot
+#
+# Now, these two assumptions are needed only in the case that the name string
+# does not contain any of the titles from the `TITLES` set we've defined.
 #
 # Now, we can cross-reference titles with their respective genders. Note that
 # some of the titles in our dataset are gender-neutral. Thus, we'll only check
@@ -437,7 +484,7 @@ df[["name", "title"]].head(10)
 
 
 # %%
-pd.crosstab(df["sex"], df["title"])
+pd.crosstab(df["title"], df["sex"])
 
 
 # %% [markdown]
@@ -460,11 +507,11 @@ pd.crosstab(df["sex"], df["title"])
 
 # %%
 na_counts = df.isna().sum()
-na_counts[na_counts > 0]
+print(na_counts[na_counts > 0])
 
 
 # %% [markdown]
-# ### Embarked column
+# ### Embarked
 
 
 # %% [markdown]
@@ -507,209 +554,54 @@ df[df.pclass == 1].groupby(by="embarked")["embarked"].value_counts()
 # We see that the vast majority of the passengers with `pclass` as 1 embarked
 # from Southampton, followed by Cherbourg.
 #
-# Considering the vast majority of 1st class passengers boarded the Titanic
-# from Southampton, we'll assign the `Embarked` as `S` for these passengers.
+# Considering the vast majority of first-class passengers boarded the Titanic
+# from Southampton, we'll assign the `Embarked` as `S` for these passengers. In
+# fact, we'll just use a frequency map of the port of embarkation for each
+# passenger class.
 
 
 # %%
-df["embarked"] = df["embarked"].fillna(value="S")
-print(f"Missing embarked values count: {df.embarked.isna().sum()}")
+embarked_by_class = df.groupby(by="pclass")["embarked"].value_counts()
+print(embarked_by_class)
 
 
 # %% [markdown]
-# ### Age
-
-
-# %% [markdown]
-# Let's first save the missing age indices to a separate csv file so that we
-# can keep track of it during later stages.
-
-
-# %%
-na_ids = df.loc[df.age.isna(), "passengerid"]
-na_ids.to_csv("../data/raw/na_ids.csv")
-
-
-# %% [markdown]
-# The dataset has 177 missing age values. Let's first investigate missing
-# values in the `age` column per title.
-
-
-# %%
-na_age_titles = df.loc[df.age.isna(), "title"].unique()
-print(f"Titles with missing age entries: {na_age_titles}")
-
-
-# %%
-df.loc[df.title.isin(na_age_titles), "title"].value_counts()
-
-
-# %% [markdown]
-# We observe that the titles with missing age values contain nonempty entries
-# as well. Therefore, we can use groupings to impute the missing age entries.
-# For the majority of the cases, we can just use the medians to fill the
-# missing values. However, we should handle some cases manually. For example,
-# Miss. title includes girls and unmarried woman and first-class passengers
-# often traveled with the family maids, who were often unmarried women.
-# Therefore, we'll determine some cases to handle first.
+# Notice that the proposed approach for filling missing `embarked` values is not
+# good since all missing values would be imputed as `"S"` regardless of
+# `pclass`. Therefore, we change our approach. Instead, we'll use a step-by-step
+# process to infer the information. The first step is to use the ticket number:
+# a family of passengers is most likely to board the ship together. The second
+# step would be to use `fare`. However, there are some difficulties involving
+# the `fare` column.
 #
-# For titles Dr. and Master., we can impute using title medians. Let's start
-# with that first.
-
-
-# %%
-dr_median = df.loc[df.title == "Dr.", "age"].median()
-df.loc[(df.title == "Dr.") & (df.age.isna()), "age"] = dr_median
-
-master_median = df.loc[df.title == "Master.", "age"].median()
-df.loc[(df.title == "Master.") & (df.age.isna()), "age"] = master_median
-
-
-# %% [markdown]
-# Next up, let's manually fill missing the young girl ages. We can filter by
-# title Miss. and `parch`. Recall that `parch` denotes the number of parents or
-# children onboard. Since Miss. title is exclusive to unmarried women and
-# having children without marriage was not common at all at the time, we can
-# assume that `parch` > 0 implies they have parents, which means that they are
-# girls or young women.
-
-
-# %%
-mask = (df.title == "Miss.") & (df.parch > 0)
-young_girl_median = df.loc[mask, "age"].median()
-df.loc[mask & (df.age.isna()), "age"] = young_girl_median
-
-
-# %% [markdown]
-# For the rest of the passengers, we can impute values with title and passenger
-# class medians. The reason we include the passenger class is simple.
-# First-class passengers were generally wealthy businessmen, who were generally
-# middle-aged or older, and third-class passengers were usually workers and
-# immigrants, who were younger.
-
-
-# %%
-df["age"] = df["age"].fillna(
-    df.groupby(by=["title", "pclass"])["age"].transform("median")
-)
-print(f"Missing age values count: {df.age.isna().sum()}")
-
-
-# %% [markdown]
-# <div class="alert alert-block alert-info">
-#     <b>NOTE:</b> Although our methodology was solid, we may have introduced
-#     some noise to the dataset. In future versions, if a more careful
-#     procedure for preparing the data for model training is deemed necessary,
-#     this section can be improved.
-#
-# Here are some improvement options:
-#
-# 1. Refine the method
-# 2. Manually fill as much data as possible (some missing values from the
-# dataset can be found by research)
-# 3. Automation or web scraping for filling as much data as possible.
-#
-# </div>
-#
-# Titanic has been a research area for many years, and through the collective
-# efforts of many brilliant minds, a lot of the missing data has been
-# recovered. Therefore, we can fill in the missing passenger ages in case they
-# are known but not present in our dataset. This kind of improvement is out of
-# our scope, though.
-
-
-# %% [markdown]
-# ### Cabin
-
-
-# %% [markdown]
-# As we've briefly mentioned before, filling individual cabin numbers is a
-# near-impossible task with a high risk of introducing a lot of noise. Instead,
-# we can fill the `deck` column we've added. To do this, we can make use of the
-# fact that decks A-E included first-class cabins while decks D-G included
-# second and third-class cabins.
-#
-# We can group decks by `pclass` and `fare` to fill in the missing values.
-# However, one issue with the `fare` column is that it is not passenger-based
-# but rather ticket-based. For example, a family can buy a single ticket with a
-# whole sum fare, and both the ticket number and the fare amount will be the
-# same for every member of the family.
-#
-# We could first resolve the `fare` column before imputation. However, the
-# difficulties with the fare are
+# In our dataset, fare is not a passenger-based feature. Instead, fare is
+# calculated on a ticket basis. If a person buys two £10 tickets, their fare
+# will show as £20, which shouldn't be treated differently from a passenger who
+# bought the same ticket but only for himself. The difficulties we have with
+# fare can be summed up as follows:
 #
 # 1. The training dataset may not include every member with the same ticket
 # number.
-#     - For example, if a family of 5 bought a 5-person ticket, but our
-#     training data includes only 4 of the members, then doing a basic
+#     - For example, if a family of 5 bought a 5-person ticket, but our training
+#     data includes only 4 of the members, then doing a basic
 #     calculation like `fare = fare / 4` for each passenger will result in an
 #     incorrect ticket cost.
-# 2. Some tickets could be handed out for </b>ee or with discounts, which we
-# have no way of knowing.
-# 3. Apparently, ticket discounts were applied based on age: adults, children,
+# 2. Some tickets could be handed out for free or with discounts, which we have
+# no way of knowing.
+# 3. Evidently, ticket discounts were applied based on age: adults, children,
 # and babies had different ticket costs.
-#     - Since we've imputed 177 missing age values, we may introduce more noise
-#     by feature extraction for `age`.
+#     - Since we have missing age values, filtering is not possible without age
+#     imputation, which will introduce noise to our approximation anyway.
 #
-# On the other hand, not dealing with the `fare` column can also misguide us in
-# imputation. Before we make a strategy, let's first fill in `deck` column
-# based on `ticket`: if a passenger with an empty `deck` column shares his/her
-# ticket with another passenger with a valid `deck` value, we can use this for
-# imputation.
-
-
-# %%
-def fill_same_ticket_decks(df: pd.DataFrame):
-    na_count_before = df.deck.isna().sum()
-
-    ticket_deck_mode = (
-        df.dropna(subset=["deck"])
-        .groupby("ticket")["deck"]
-        .agg(lambda x: x.value_counts().idxmax())
-        .reset_index()
-        .rename(columns={"deck": "deck_mode"})
-    )
-
-    df = df.merge(ticket_deck_mode, on="ticket", how="left")
-
-    if isinstance(df.deck, pd.CategoricalDtype):
-        new_cats = list(
-            set(df.deck_mode.dropna().unique()) - set(df.deck.categories)
-        )
-        df["deck"] = df["deck"].cat.add_categories(new_cats)
-
-    df["deck"] = df["deck"].fillna(df["deck_mode"])
-    df = df.drop(columns="deck_mode")
-    na_count_after = df.deck.isna().sum()
-    print(f"Filled {na_count_before - na_count_after} missing 'deck' values.")
-
-    return df
-
-
-# %%
-df = fill_same_ticket_decks(df)
-
-
-# %% [markdown]
-# We've only filled 11 missing values. There are still 676 missing values. Now,
-# we need to make a decision.
-#
-# All things considered, imputing `deck` by using `pclass` and `fare` seems to
-# be the most logical approach. Due to how each cabin (and therefore its
-# corresponding deck) was designed to target a specific wealth group, there
-# should be a natural distinction between decks. Hence, we can use a predictive
-# model for imputation. In our case, a random forest classifier works the best
-# since
-#
-# - Random forests are resistant to nonlinearity and outliers
-# - Doesn't require encoding (which can introduce nonexistent ordering between
-# categories)
-# - Should work well with the `fare` despite our difficulties making inferences
+# Thus, we'll try to resolve the `fare` column by extracting `fare_per_person`
+# using two metrics: ticket numbers and family/group sizes.
 
 
 # %%
 ticket_counts = df.groupby("ticket")["ticket"].transform("count")
 family_size = df["sibsp"] + df["parch"] + 1
+
+df["famsize"] = family_size
 
 group_size = np.where(
     ticket_counts > 1, np.maximum(ticket_counts, family_size), family_size
@@ -741,52 +633,356 @@ df[["fare", "fare_per_person"]].head(10)
 # code will still not capture them.
 #
 # The bottom line here is that we cannot deterministically capture every single
-# "fare per person" amount; we can only approximate. Therefore, the tree
-# classifier we'll build for imputing the decks will also be subject to these
-# approximations. As a result, we cannot really expect such great accuracy. On
-# the contrary, with these few predictor variables and a small sample size, a
-# higher accuracy would hint at extreme overfitting, data leakage, etc., rather
-# than hinting at discovering relations between feature and target variables
-# for imputation.
+# "fare per person" amount; we can only approximate. In our model, we'll use
+# these approximated `fare_per_person` medians to match with ports. If we also
+# add the passenger class to the equation, we can further narrow the range of
+# possibilities for a missing value.
+
+
+# %%
+def fill_embarked(df: pd.DataFrame) -> None:
+    """
+    Fills missing embarked values by
+
+    1. Matching ticket numbers
+    2. Comparing fare_per_person to class-specific median fares
+    """
+    na_idx = df[df["embarked"].isna()].index
+
+    fare_medians = df.groupby(["embarked", "pclass"])[
+        "fare_per_person"
+    ].median()
+
+    for i in na_idx:
+        ticket = df.loc[i, "ticket"]
+        fare = df.loc[i, "fare_per_person"]
+        pclass = df.loc[i, "pclass"]
+
+        # 1. ticket-based mode
+        modes = df.loc[df["ticket"] == ticket, "embarked"].mode()
+        if not modes.empty:
+            df.loc[i, "embarked"] = modes.iloc[0]
+            continue
+
+        # 2. fallback: closest class-specific median fare
+        best_port = None
+        best_diff = float("inf")
+
+        for port in ["C", "Q", "S"]:
+            try:
+                median_fare = fare_medians.loc[(port, pclass)]
+            except KeyError:
+                continue
+
+            diff = abs(fare - median_fare)
+
+            if diff < best_diff:
+                best_diff = diff
+                best_port = port
+
+        df.loc[i, "embarked"] = best_port
+
+
+# %%
+fill_embarked(df)
+print(f"Missing embarked values count: {df.embarked.isna().sum()}")
+
+
+# %%
+df[df["ticket"] == "113572"]
+
+
+# %% [markdown]
+# ### Age
+
+
+# %% [markdown]
+# We'll start by creating a column that indicates the `age` value was missing
+# before processing the data.
+
+
+# %%
+df["age_was_missing"] = df.age.isna().astype(int)
+
+
+# %% [markdown]
+# The dataset has 177 missing age values. We shall start by checking the
+# distribution of missing values across other features. If we confirm that the
+# missing values occur at random, we can then proceed with imputation.
+
+
+# %%
+tab = pd.crosstab(df.title, df.age.isna(), normalize=True)
+tab[tab[True] > 0]
+
+
+# %%
+pd.crosstab(df.sex, df.age.isna(), normalize=True)
+
+
+# %%
+pd.crosstab(df.pclass, df.age.isna(), normalize=True)
+
+
+# %% [markdown]
+# - The distribution of missing age values varies substantially across titles
+# and passenger classes. Although we haven't conducted a statistical test, the
+# data itself is clearly showcasing the variance. For example,
+#
+# - Master. title has 10% missing values, while Mr. has 23%
+# - Only 6% of second-class passengers have missing age values compared to
+# almost 28% for the third-class passengers
+#
+# Therefore, it is reasonable to say that the data is *NOT* missing completely
+# at random. Since `title`, `sex`, and `pclass` show variance in missing age
+# value proportions, it is feasible to assume that these features can reasonably
+# explain the missing values. Thus, we'll proceed to impute `age` using the
+# specified feature set. Before continuing, we should also plot the age
+# distribution to compare with that after imputation.
+
+
+# %%
+sns.histplot(data=df.loc[df.age.notna()], x="age", bins=np.arange(0, 85, 5))
+
+plt.xlabel("Age")
+plt.title("Age Distribution")
+
+
+# %% [markdown]
+# While some honorific titles, such as Dr., are broad titles in terms of age
+# ranges, some of them are highly focused on a specific range. For example,
+# Master. title is given only to males who have not reached adulthood yet. On
+# the other hand, Miss. title is given to young girls or unmarried women, which
+# doesn't really narrow the age range. However, the `parch` feature can be used
+# to narrow the range further down since unmarried women generally don't have
+# children while young girls probably have parents on board. Though `parch` is
+# more likely a proxy than a direct signal, since adult unmarried women could be
+# traveling with their parents too.
+#
+# We can also use the `sibsp` feature and train a model on these features. The
+# model should be able to further differentiate a young girl from an unmarried
+# woman using family-related features. It should also be useful for the rest of
+# the age imputation process.
+#
+# Before we proceed with this idea, we should also check the missing age
+# proportions of the ' parch ' and ' sibsp ' features.
+
+
+# %%
+pd.crosstab(df.parch, df.age.isna(), normalize=True)
+
+
+# %%
+pd.crosstab(df.sibsp, df.age.isna(), normalize=True)
+
+
+# %% [markdown]
+# We observe that missingness in age values is higher for passengers with no
+# other family members onboard, both for `parch` and `sibsp` features
+# separately. The variance is not negligible; therefore, we assume that values
+# are missing at random.
+#
+# Now, we shall train a model to impute the missing values. The obvious choice
+# in this case would be a random forest model. The reasons are:
+#
+# 1. We are not sure of any linear relationship between features and the target
+# `age`
+# 2. Suspicions that arise regarding passenger classes, such as passengers with
+# zero `parch` and `sibsp`, or third-class male passengers with Mr. title (we'll
+# investigate this class of passengers more closely in a later notebook), are
+# naturally handled by the model as it makes the distinctions by itself
+# 3. No further need for data assumptions than what we've already stated
+
+
+# %%
+data = df[df.age.notna()]
+
+categorical = ["title", "sex"]
+numeric = ["pclass", "sibsp", "parch"]
+
+y = data["age"]
+X = data[["title", "sex", "pclass", "sibsp", "parch"]]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.20, random_state=40
+)
+
+
+# %%
+preprocess = ColumnTransformer(
+    [
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical),
+        ("num", "passthrough", numeric),
+    ]
+)
+model = RandomForestRegressor(random_state=40, n_jobs=-1)
+pipe = Pipeline([("preprocess", preprocess), ("model", model)])
+pipe.fit(X_train, y_train)
+
+
+# %%
+y_pred = pipe.predict(X_test)
+
+print(f"MAE: {mean_absolute_error(y_test, y_pred)}")
+
+
+# %% [markdown]
+# A mean absolute error of 8.33 is not that bad in our case. For comparison,
+# we'll also create a baseline model that assigns `title` medians to missing age
+# values.
+
+
+# %%
+title_medians = data.groupby("title")["age"].median()
+y_pred_baseline = X_test["title"].map(title_medians)
+y_pred_baseline = y_pred_baseline.fillna(y_train.median())
+print(f"Baseline MAE: {mean_absolute_error(y_test, y_pred_baseline)}")
+
+
+# %% [markdown]
+# The baseline model's mean absolute error is 9.31 compared to 8.33 of our
+# random forest regressor. This result is satisfactory enough given that none of
+# the features are direct signals for age but rather proxies that narrow our
+# guess range down. Moving on, we should check and compare the age distribution
+# after filling the missing values.
+
+
+# %%
+pipe.fit(X, y)
+
+missing = df[df.age.isna()][["title", "sex", "pclass", "sibsp", "parch"]]
+
+df.loc[df.age.isna(), "age"] = pipe.predict(missing)
+
+
+# %%
+plt.figure(figsize=(8, 6))
+
+bins = np.arange(0, 85, 5)
+
+sns.histplot(
+    data=df,
+    x="age",
+    bins=bins,
+    color="blue",
+    alpha=0.75,
+    label="After imputation",
+)
+
+sns.histplot(
+    data=df.loc[df.age_was_missing == 0],
+    x="age",
+    bins=bins,
+    color="orange",
+    alpha=0.75,
+    label="Before imputation (observed)",
+)
+
+plt.xlabel("Age")
+plt.ylabel("Count")
+plt.title("Age Distribution: Before vs After Imputation")
+plt.legend()
+plt.show()
+
+
+# %% [markdown]
+# **Remarks:**
+#
+# 1. Age distribution is preserved for the majority of age groups
+# 2. The lower and higher ends of the curve are basically identical
+# 3. Age groups of 5-15 and 30-45 are smoothed
+# 4. Age distribution is more concentrated around the median
+# 5. Tails are less extreme
+#
+# Overall, we should be satisfied with the result. Even though the imputed age
+# distribution is more concentrated around the median, we still have a better
+# model than just imputing with title medians, shown by comparing the MAE scores
+# of both models. At the same time, the distribution isn't distorted
+# significantly, especially outside the $1-\sigma$ range from the median.
+
+
+# %% [markdown]
+# ### Cabin
+
+
+# %% [markdown]
+# As we've briefly mentioned before, filling individual cabin numbers is a
+# near-impossible task with a high risk of introducing a lot of noise. Instead,
+# we can fill the `deck` column we've added. To do this, we can make use of the
+# fact that decks A-E included first-class cabins while decks D-G included
+# second and third-class cabins.
+#
+# We can group decks by `pclass` and `fare` to fill in the missing values.
+# However, the same difficulties with the `fare` column as in the `embarked`
+# case apply here as well. Therefore, we'll use `fare_per_person` instead.
+
+
+# %%
+print(f"Missing decks before: {df.deck.isna().sum()}")
+
+
+def fill_same_ticket_decks(df: pd.DataFrame):
+    df["deck"] = df["deck"].fillna(
+        df.groupby("ticket")["deck"].transform(
+            lambda x: x.mode().iloc[0] if not x.mode().empty else pd.NA
+        )
+    )
+
+
+fill_same_ticket_decks(df)
+
+print(f"Missing decks after: {df.deck.isna().sum()}")
+
+
+# %% [markdown]
+# We've only filled 11 missing values. There are still 676 missing values.
+#
+# All things considered, imputing `deck` by using `pclass` and `fare_per_person`
+# seems to be the most logical approach. Due to how each cabin (and therefore
+# its corresponding deck) was designed to target a specific wealth group, there
+# should be a natural distinction between decks. Hence, we can use a predictive
+# model for imputation. In our case, a random forest classifier works the best
+# since
+#
+# - Random forests are resistant to nonlinearity and outliers
+# - Doesn't require encoding (which can introduce nonexistent ordering between
+# categories)
+#
+# The tree classifier we'll build for imputing the decks will also be subject to
+# the approximations we have done so far, such as in the "fare per person" case.
+# As a result, we cannot really expect such great accuracy. On the contrary,
+# with these few predictor variables and a small sample size, a higher accuracy
+# would hint at extreme overfitting, data leakage, etc., rather than hinting at
+# discovering relations between feature and target variables for imputation.
 #
 # Let's proceed with developing our model.
 
 
 # %%
-seed = 6
+data = df.drop("cabin", axis=1).dropna(axis=0)
+data = data[data["deck"] != "T"]
 
-rf_data = df.drop("cabin", axis=1).dropna(axis=0)
-rf_data = rf_data[rf_data["deck"] != "T"]
-
-X = rf_data[["fare_per_person", "pclass"]]
-y = rf_data["deck"]
+X = data[["fare_per_person", "pclass"]]
+y = data["deck"]
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, stratify=y, random_state=seed
+    X, y, test_size=0.20, stratify=y, random_state=6
 )
-
-if (
-    isinstance(X_train, pd.DataFrame)
-    and isinstance(X_test, pd.DataFrame)
-    and isinstance(y_train, pd.Series)
-    and isinstance(y_test, pd.Series)
-):
-    print(X_train.shape, y_test.shape)
-else:
-    raise Exception("train_test_split returned objects of unexpected type.")
 
 
 # %%
-rf = RandomForestClassifier(n_jobs=-1, random_state=seed)
+rf = RandomForestClassifier(n_jobs=-1, random_state=6)
 
-cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=6)
 
 param_grid = {
-    "n_estimators": np.arange(10, 101, 10),
+    "n_estimators": np.arange(5, 51, 5),
+    "max_features": ["sqrt", "log2"],
+    "criterion": ["gini", "entropy"],
     "max_depth": np.arange(3, 16, 2),
     "min_samples_split": [2, 3, 4],
-    "min_impurity_decrease": [0, 0.000125, 0.00025, 0.005],
+    "min_samples_leaf": [1, 2],
 }
 
 clf = GridSearchCV(
@@ -811,7 +1007,7 @@ print(clf.best_params_)
 
 
 # %% [markdown]
-# 72.34% accuracy is sufficient for our case. We won't go much deeper into why,
+# 72.3% accuracy is sufficient for our case. We won't go much deeper into why,
 # but one quick metric we could obtain is to train a base model with the
 # following logic:
 #
@@ -862,18 +1058,9 @@ disp.plot()
 
 
 # %%
-model = RandomForestClassifier(random_state=42, n_jobs=-1, **clf.best_params_)
+rfc = RandomForestClassifier(random_state=6, n_jobs=-1, **clf.best_params_)
 
-model.fit(X, y)
-
-
-# %% [markdown]
-# Let's also `pickle` this model for future use.
-
-
-# %%
-with open("../models/deck_imputer.pkl", "wb") as file:
-    pickle.dump(model, file)
+rfc.fit(X, y)
 
 
 # %% [markdown]
@@ -885,7 +1072,10 @@ with open("../models/deck_imputer.pkl", "wb") as file:
 
 # %%
 def impute_decks(
-    data: pd.DataFrame, passenger_idx: pd.Series, threshold: float = 0.6
+    model: RandomForestClassifier,
+    data: pd.DataFrame,
+    passenger_idx: pd.Series,
+    threshold: float = 0.6,
 ) -> None:
     """
     Imputes the missing deck information of the specified passengers.
@@ -911,7 +1101,7 @@ def impute_decks(
     classes = model.classes_
 
     if not isinstance(proba, np.ndarray):
-        raise Exception(
+        raise TypeError(
             f"model.predict_proba returned {type(proba)} instead of np.ndarray"
         )
 
@@ -938,7 +1128,9 @@ def impute_decks(
 
 
 # %%
-impute_decks(data=df, passenger_idx=df.ticket.duplicated(keep="first"))
+impute_decks(
+    model=rfc, data=df, passenger_idx=df.ticket.duplicated(keep="first")
+)
 
 
 # %% [markdown]
@@ -946,7 +1138,7 @@ impute_decks(data=df, passenger_idx=df.ticket.duplicated(keep="first"))
 
 
 # %%
-df = fill_same_ticket_decks(df)
+fill_same_ticket_decks(df)
 
 
 # %%
@@ -954,7 +1146,7 @@ df.deck.isna().sum()
 
 
 # %% [markdown]
-# We still have 507 missing values to deal with. For the rest of the data, we
+# We still have 487 missing values to deal with. For the rest of the data, we
 # can lower the threshold to 0, perform a check on whether `pclass` matches the
 # assigned deck, and apply the same deck to the other ticket holders as we just
 # did.
@@ -962,7 +1154,10 @@ df.deck.isna().sum()
 
 # %%
 impute_decks(
-    data=df, passenger_idx=df.ticket.duplicated(keep="first"), threshold=0.0
+    model=rfc,
+    data=df,
+    passenger_idx=df.ticket.duplicated(keep="first"),
+    threshold=0.0,
 )
 
 invalid = (
@@ -981,7 +1176,7 @@ mismatched[["passengerid", "pclass", "deck"]]
 
 
 # %%
-df = fill_same_ticket_decks(df)
+fill_same_ticket_decks(df)
 
 print(f"Missing deck values count: {df.deck.isna().sum()}")
 
@@ -993,7 +1188,7 @@ print(f"Missing deck values count: {df.deck.isna().sum()}")
 
 
 # %%
-impute_decks(data=df, passenger_idx=df.deck.isna(), threshold=0.0)
+impute_decks(model=rfc, data=df, passenger_idx=df.deck.isna(), threshold=0.0)
 
 print(f"Missing deck values count: {df.deck.isna().sum()}")
 
@@ -1031,31 +1226,38 @@ df.to_parquet(
 # 3. Validated data types
 # 4. Extracted a new column `deck` from `cabin` column
 # 5. Extracted a new column `title` from `name` column
-# 6. Validated the data (except for the `fare` column, read the related section
+# 6. Extracted a new column `famsize` from `parch` and `sibsp`
+# 7. Extracted a new column `fare_per_person`
+# 8. Validated the data (except for the `fare` column, read the related section
 # for more details)
-# 7. Imputed 2 `embarked`, 177 `age`, and 687 `deck` values
+# 9. Imputed 2 `embarked`, 177 `age`, and 687 `deck` values
 #
 # Our strategy for imputation was as follows:
 #
-# 1. In `embarked` column, there were only 2 missing values. Both passengers
-# shared the same ticket number, which indicated that they probably both
-# embarked from the same place. We checked which port was the most common among
-# first-class passengers to embark from. Then, we assigned that value to the
-# missing entries.
-# 2. In `age` column, we followed different strategies for handling missing
-# values. For example, we handled the "Master." title case separately since
-# that title is specific to a certain age group. We sliced the passengers into
-# groups using their titles, and for the rest, we used a title and passenge
-# class based median calculation and assigned the value to the missing entries.
-# 3. Instead of imputing the `cabin` column, we decided to impute the `deck`
-# column as it would introduce less noise. We built a random forest classifier
-# and trained it on a feature-engineered column `fare_per_person`. We
-# hyperparameter-tuned this model and used it to impute the missing values. We
-# also checked whether there were inconsistencies, for example, a first-class
-# passenger being assigned to deck G, but there were none.
+# 1. In the `embarked` column, we first matched based on ticket numbers. If two
+# passengers share the same ticket number but one of them is missing his/her
+# embarkation information, we assume that they most probably boarded the ship
+# together; therefore, assign the same `embarked` value as the other passenger.
+# If this option is not available, then we match by fare means per port. We
+# calculate the difference between the passenger's fare and each port's fare
+# mean and choose the closest.
+# 2. In the `age` column, we developed a random forest regressor model that is
+# trained on `title`, `sex`, `pclass`, `sibsp`, and `parch` columns. The model
+# performed better than the "assign each title's median age" model, with a mean
+# absolute error of 8.33 compared to the median model's 9.32. We also checked
+# the distribution of age values before and after imputation. We decided to
+# proceed with the model.
+# 3. In the `cabin` column, we followed the same principle as with the
+# `embarked` case, where we filled in first by ticket number. Then, we developed
+# a random forest classifier to fill in by using `fare_per_person` and `pclass`
+# features. We created a function to fill missing values only when the model's
+# confidence was above a certain threshold. We recursively applied both methods
+# back and forth until no further progress could be achieved. Lastly, we dropped
+# the model's confidence threshold to 0 so that it would fill all the values
+# that couldn't have been filled with the recursive method.
 #
 # We saved the resulting `pd.DataFrame` object as a new dataset under the
-# directory `data/modified/cleaned.csv`, which we'll use in the upcoming
+# directory `data/modified/cleaned.parquet`, which we'll use in the upcoming
 # sections.
 #
 # Throughout this section, we had to make certain decisions on our methodology
