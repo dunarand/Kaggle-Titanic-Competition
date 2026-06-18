@@ -9,9 +9,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: kaggle-titanic
+#     display_name: .venv (3.14.5)
 #     language: python
-#     name: kaggle-titanic
+#     name: python3
 # ---
 
 # %% [markdown]
