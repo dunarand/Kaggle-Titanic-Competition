@@ -1525,8 +1525,6 @@ plt.show()
 #
 # We suspect that `survived` might be dependent based on what we've observed
 # from the plot. Let's conduct a chi-square test of independence to be sure.
-# We'll drop the 5th and 8th columns since they have no survivors, and that
-# would violate data assumptions for the test otherwise.
 #
 # We state the hypothesis:
 #
@@ -1612,7 +1610,7 @@ plt.show()
 #
 # Same with the last case, we suspect that the target variable `survived` is
 # dependent on the feature `parch`; thus, we'll conduct a chi-square test of
-# independence. We'll drop columns 4 and 6 to satisfy the data assumptions.
+# independence.
 #
 # We state the hypothesis:
 #
