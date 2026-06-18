@@ -9,7 +9,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: .venv (3.14.5.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -2283,4 +2283,9 @@ print(results)
 # claims and interpretations
 #
 # These remarks conclude the bivariate analysis section of the EDA phase. We'll
-# proceed with the multivariate analysis in the next notebook.
+# proceed with the multivariate analysis in the next notebook. Let's save the
+# data in its current state for the part 2 of EDA.
+
+
+# %%
+df.to_parquet("../data/modified/edap1.parquet", index=False)
