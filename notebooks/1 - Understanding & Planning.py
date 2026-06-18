@@ -9,7 +9,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: .venv (3.14.5)
 #     language: python
 #     name: python3
 # ---
@@ -21,7 +21,7 @@
 # %% [markdown]
 # **Author:** M. Görkem Ulutürk
 #
-# **Date:** March, 2025
+# **Date:** June, 2025
 
 
 # %% [markdown]
