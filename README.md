@@ -89,12 +89,9 @@ Then, install the required packages:
 pip3 install -r requirements.txt
 ```
 
-**Note:** This repository was created using [neovim](https://github.com/neovim/neovim) for a better
-editing experience, and [jupytext](https://github.com/mwouts/jupytext) for a better version control
-system. If you plan to work with the same tools, I highly suggest the [jupytext.nvim
-plugin](https://github.com/GCBallesteros/jupytext.nvim). If you want to work on the `ipynb` Jupyter
-Notebooks with your choice of IDE or text editor, you will not need the `jupytext` installation in
-`requirements.txt`, so you can remove the respective line.
+**Note:** If you want to work directly on the `ipynb` Jupyter Notebooks with your choice of IDE or
+text editor, you will not need the `jupytext` installation in `requirements.txt`, so you can remove
+the respective line. In this case, you'll also not need the corresponding .py scripts.
 
 Next up, obtain the datasets `train.csv` and `test.csv` through the [official
 webpage](https://www.kaggle.com/competitions/titanic/data) or by using the Kaggle API:
@@ -142,6 +139,7 @@ Kaggle-Titanic-Competition
 ├── models/          # Pickled model files (*.pkl)
 ├── notebooks/       # Jupyter notebooks
 ├── README.md
+├── SKILLS.md        # Agent skills assisting in the project
 └── requirements.txt
 ```
 
@@ -150,8 +148,9 @@ Notebooks are located in the `notebooks/` subdirectory.
 - [0 - Titanic Machine Learning from Disaster](./notebooks/0%20-%20Titanic%20Machine%20Learning%20from%20Disaster.ipynb)
 - [1 - Understanding & Planning](./notebooks/1%20-%20Understanding%20&%20Planning.ipynb)
 - [2 - Data Wrangling](./notebooks/2%20-%20Data%20Wrangling.ipynb)
-- [3 - Exploratory Data Analysis](./notebooks/3%20-%20Exploratory%20Data%20Analysis.ipynb)
-- [4 - Building a Model](./notebooks/4%20-%20Building%20a%20Model.ipynb)
-- [5 - Results](./notebooks/5%20-%20Results.ipynb)
+- [3 - EDA Part 1](./notebooks/3%20-%20EDA%20Part%201.ipynb)
+- [4 - EDA Part 2](./notebooks/4%20-%20EDA%20Part%202.ipynb)
+- [5 - Building a Model](./notebooks/5%20-%20Building%20a%20Model.ipynb)
+- [6 - Results](./notebooks/6%20-%20Results.ipynb)
 
 You can find the pickled models in the `models/` subdirectory.
