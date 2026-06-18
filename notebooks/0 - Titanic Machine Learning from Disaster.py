@@ -9,18 +9,22 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: kaggle-titanic
+#     display_name: .venv (3.14.5)
 #     language: python
-#     name: kaggle-titanic
+#     name: python3
 # ---
+
+# %%
 
 # %% [markdown]
 # # Titanic - Machine Learning from Disaster
 
+
 # %% [markdown]
 # **Author:** M. Görkem Ulutürk
 #
-# **Date:** December, 2025
+# **Date:** June, 2026
+
 
 # %% [markdown]
 # ## Introduction <a name="1"></a>
@@ -48,11 +52,14 @@
 # question: “What sorts of people were more likely to survive?” using passenger
 # data (i.e., name, age, gender, socio-economic class, etc).
 
+
 # %% [markdown]
 # ## Project Outline
 
+
 # %% [markdown]
 # ### Objective
+
 
 # %% [markdown]
 # We will develop a machine learning model to predict whether a passenger
@@ -71,8 +78,10 @@
 # reader should take this project only as a reflection of my individual
 # capacities and workflow.
 
+
 # %% [markdown]
 # ### The Model and Model Evaluation
+
 
 # %% [markdown]
 # We'll decide on the model and the performance metrics while we develop
@@ -95,8 +104,10 @@
 # than our baseline models in the upcoming notebook. We'll talk about the
 # performance baseline.
 
+
 # %% [markdown]
 # ### Structure
+
 
 # %% [markdown]
 # We'll divide the project into separate notebooks for each chapter. These
@@ -104,9 +115,10 @@
 #
 # 1. [Understanding & Planning](1%20-%20Understanding%20&%20Planning.ipynb)
 # 2. [Data Wrangling](2%20-%20Data%20Wrangling.ipynb)
-# 3. [Exploratory Data Analysis](3%20-%20Exploratory%20Data%20Analysis.ipynb)
-# 4. [Building a Model](4%20-%20Building%20a%20Model.ipynb)
-# 5. [Results](5%20-%20Results.ipynb)
+# 3. [EDA Part 1](3%20-%20EDA%20Part%201.ipynb)
+# 4. [EDA Part 2](4%20-%20EDA%20Part%202.ipynb)
+# 4. [Building a Model](5%20-%20Building%20a%20Model.ipynb)
+# 5. [Results](6%20-%20Results.ipynb)
 #
 # Stages of the data science workflow are divided into their own notebooks.
 # Also, since this process is iterative, we may include sections in those
@@ -115,8 +127,10 @@
 # document my thought-process and workflow, how I obtained and used information
 # throughout the project, and so on.
 
+
 # %% [markdown]
 # ## Next Up
+
 
 # %% [markdown]
 # In the upcoming notebook, we start by understanding the problem. We briefly
