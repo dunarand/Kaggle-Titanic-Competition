@@ -108,15 +108,37 @@ df.info()
 # investigated feature does not improve the fit)
 # - $\text{H}_\text{a}$: The full model better explains the target (adding the
 # investigated feature does improve the fit)
+#
+# We should start by defining the helper functions. The test family we'll
+# compose holds the sole purpose of testing whether a feature is a proxy or not.
+# We'll use the resulting p-values from running LLR tests for test validation.
 
 
 # %%
 P_VALS = dict()
 
 
-def logit_model(_formula: str, _data: pd.DataFrame, print_summary: bool = True):
+def logit_model(
+    _formula: str, _data: pd.DataFrame = df, print_summary: bool = False
+):
     """
-    Fits a logistic regression model and returns the model summary.
+    Fits a logistic regression model and returns the model summary. Runs
+    smf.logit under the hood.
+
+    Parameters
+    ----------
+    _formula : str
+        Regression formula (the same as required by smf.logit)
+
+    _data : pd.DataFrame
+        Defaults to df
+
+    print_summary : bool
+        Whether to print model summary. Defaults to False
+
+    Returns
+    -------
+    Resulting logistig regression model
     """
     _model = smf.logit(_formula, _data).fit(maxiter=500)
     _odds_ratios = np.exp(_model.params)
@@ -133,7 +155,24 @@ def llr_test(
     control_model, full_model, alpha: float = 0.05, key: str | None = ""
 ):
     """
-    Performs a likelihood ratio test
+    Performs a likelihood ratio test between the control model and the full
+    model.
+
+    Parameters
+    ----------
+    control_model : Any
+        smf.logit model used for control
+
+    full_model: Any
+        smf.logit model used for testing fitting improvements
+
+    alpha : float
+        Significance level to reject / fail to reject the null hypothesis.
+        Defaults to 0.05
+
+    key : str | None
+        Dictionary key to append to the P_VALS dict. Defaults to the empty
+        string
     """
     lr_stat = 2 * (full_model.llf - control_model.llf)
     df_diff = full_model.df_model - control_model.df_model
@@ -206,7 +245,7 @@ survived ~
     C(sex, Treatment('female')) +
     C(age_group, Treatment('Child'))
 """
-control_model = logit_model(reduced_formula, df, print_summary=True)
+control_model = logit_model(reduced_formula, print_summary=True)
 
 
 # %% [markdown]
@@ -243,7 +282,7 @@ control_model = logit_model(reduced_formula, df, print_summary=True)
 
 # %%
 fare_full = reduced_formula + "+ fare"
-fare_full_model = logit_model(fare_full, df, print_summary=True)
+fare_full_model = logit_model(fare_full, print_summary=True)
 
 
 # %%
@@ -276,7 +315,7 @@ llr_test(control_model, fare_full_model, key="fare")
 
 # %%
 fpp_full = reduced_formula + "+ fare_per_person"
-fpp_full_model = logit_model(fpp_full, df, print_summary=True)
+fpp_full_model = logit_model(fpp_full, print_summary=True)
 
 
 # %% [markdown]
@@ -324,7 +363,7 @@ llr_test(control_model, fpp_full_model, key="fare_per_person")
 
 # %%
 embarked_full = reduced_formula + "+ C(embarked, Treatment('C'))"
-embarked_full_model = logit_model(embarked_full, df, print_summary=True)
+embarked_full_model = logit_model(embarked_full, print_summary=True)
 
 
 # %%
@@ -359,7 +398,7 @@ llr_test(control_model, embarked_full_model, key="embarked")
 
 # %%
 deck_full = reduced_formula + "+ C(deck, Treatment('A'))"
-deck_full_model = logit_model(deck_full, df, print_summary=True)
+deck_full_model = logit_model(deck_full, print_summary=True)
 
 
 # %%
@@ -386,7 +425,7 @@ llr_test(control_model, deck_full_model, key="deck")
 
 # %%
 title_full = reduced_formula + "+ C(title_group, Treatment('Mrs.'))"
-title_full_model = logit_model(title_full, df, print_summary=True)
+title_full_model = logit_model(title_full, print_summary=True)
 
 
 # %% [markdown]
@@ -437,7 +476,7 @@ title_full_model = logit_model(title_full, df, print_summary=True)
 
 # %%
 famsize_full = reduced_formula + "+ C(famsize_group, Treatment(1))"
-famsize_full_model = logit_model(famsize_full, df, print_summary=True)
+famsize_full_model = logit_model(famsize_full, print_summary=True)
 
 
 # %%
